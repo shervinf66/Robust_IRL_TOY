@@ -102,6 +102,5 @@ target_link_libraries(${PROJECT_NAME}
 		${LIBXML2_LIBRARIES}
         ${BOOST_LIBRARY}
         ${THREADS_LIBRARY}
-	${PTHREAD_LIBRARY}
 )
 
