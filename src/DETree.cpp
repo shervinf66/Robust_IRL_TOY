@@ -16,10 +16,10 @@ DETree::DETree(vector<Sample> sample_set, vector<double> *sample_low, vector<dou
 }
 
 DETree::~DETree(){
-    vector<DETreeNode*>* nodes = depth_first();
-    for (size_t i = 0; i < nodes->size(); i++){
-        delete (*nodes)[i];
-    }
+//    vector<DETreeNode*>* nodes = depth_first();
+//    for (size_t i = 0; i < nodes->size(); i++){
+//        delete (*nodes)[i];
+//    }
 }
 
 double DETree::density_value(Sample sample, double rho){

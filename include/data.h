@@ -1,7 +1,10 @@
 #ifndef DATA_H
 #define DATA_H
 
-#include<vector>
+#include "Sample.h"
+#include "DETree.h"
+
+#include <vector>
 
 using namespace std;
 
@@ -24,12 +27,16 @@ private:
     static constexpr double _maxIntensity = 50.0;
     static constexpr double _obsStepSize = (_maxIntensity - _minIntensity) / ((double) (_numberOfDisObs));
 
+
     vector<int> listOfStates;
     vector<int> listOfActions;
+    vector<double> * low  = new vector<double>();
+    vector<double> * high = new vector<double>();
     vector<double> timeChunk;
-    vector<vector<double> > observationModel;
+    DETree observationModel;
     vector<vector<double> > obsSampleList;
-    vector<vector<vector<double> > > obsList;
+    vector<Sample> flatObsList;
+    vector<vector<Sample > > obsList;
     vector< vector<vector<double> > > continuousTrajectories;
     vector< vector<vector<int> > > discreteTrajectories;
 
@@ -39,9 +46,12 @@ public:
     ~Data();
     vector<int> getListOfStates(){return listOfStates;}
     vector<int> getListOfActions(){return listOfActions;}
+    vector<Sample> getFlatObsList(){return flatObsList;}
     vector<double> getTimeChunk(){return timeChunk;}
+    vector<double> *getLow(){return low;}
+    vector<double> *getHigh(){return high;}
     vector<vector<double> > getObsSampleList(){return obsSampleList;}
-    vector<vector<vector<double> > > getObsList(){return obsList;}
+    vector<vector<Sample > > getObsList(){return obsList;}
     vector< vector<vector<double> > > getListOfContinuousTrajectories(){return continuousTrajectories;}
     vector< vector<vector<int> > > getListOfDiscreteTrajectories(){return discreteTrajectories;}
     vector< vector<vector<int> > > getDiscreteTrajectories() {return discreteTrajectories;}
@@ -60,11 +70,12 @@ public:
     double getMinIntensity(){return _minIntensity;}
     double getMaxIntensity(){return _maxIntensity;}
     double getObsStepSize (){return _obsStepSize;}
+    void updateFlatObsList (Sample sample){flatObsList.push_back(sample);}
     void addAContinuousTrajectory(vector<vector<double> > ct){continuousTrajectories.push_back(ct);}
     void addADiscreteTrajectory(vector<vector<int> > dt){discreteTrajectories.push_back(dt);}
     void addObsSample(vector<double> obsSample){obsSampleList.push_back(obsSample);}
-    void addObs(vector<vector<double> > obs){obsList.push_back(obs);}
-    void setObsModel(vector<vector<double> > obsModel){observationModel = obsModel;}
+    void addObs(vector<Sample > obs){obsList.push_back(obs);}
+    void setObsModel(DETree obsModel){observationModel = obsModel;}
 };
 
 #endif // DATA_H

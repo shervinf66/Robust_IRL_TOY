@@ -1,6 +1,8 @@
 #include "process.h"
 #include "data.h"
 #include "linear.h"
+#include "Sample.h"
+#include "DETree.h"
 
 #include <iostream>
 #include <cstdlib>
@@ -195,48 +197,22 @@ void Process::bildObsList(Data &data){
     for (int i = 0 ; i < (int)obsSampleList.size() ; i++){
         vector<double> obsSampleForOneTrajectory = obsSampleList.at(i);
 
-        // old code for dscrite obs
-
-        //        vector<vector<double> > obsForOneTrajectory;
-
-        //        for (int j = 0 ; j < (int)obsSampleForOneTrajectory.size() ; j = j + numberOfSamples){
-
-        //            double sum = 0.0;
-        //            double avg = 0.0;
-        //            int intensityChangeFlag;
-        //            double startIntensity = obsSampleForOneTrajectory.at(j);
-        //            double endIntensity = obsSampleForOneTrajectory.at(j + numberOfSamples - 1);
-        //            double intensityDifference = endIntensity - startIntensity;
-
-        //            for(int k = 0 ; k < numberOfSamples ; k++){
-        //                 sum = sum + obsSampleForOneTrajectory.at(j + k);
-        //             }
-        //            avg = sum / numberOfSamples;
-        //            intensityChangeFlag = calcIntensityChangeFlag(data, intensityDifference);
-        //            vector<double> obsTuple;
-        //            int clssifiedObs = classifyObs(data, avg);
-        //            obsTuple.push_back(clssifiedObs);
-        //            obsTuple.push_back(intensityChangeFlag);
-        //            obsForOneTrajectory.push_back(obsTuple);
-
-
-        //          }
-
         // New way using regression that is continuous
-        vector<vector<double> > obsForOneTrajectory;
+        vector<Sample > obsForOneTrajectory;
         for (int j = 0 ; j < (int)obsSampleForOneTrajectory.size() ; j = j + numberOfSamples){
             vector<double> IntensityChunk;
             for(int k = 0 ; k < numberOfSamples ; k++){
                 IntensityChunk.push_back(obsSampleForOneTrajectory.at(j + k));
             }
             vector<double> timeChunk = data.getTimeChunk();
-            vector<double> obsTuple;
+            Sample obsTuple;
             Maths::Regression::Linear linearRegression(numberOfSamples, timeChunk, IntensityChunk);
             double slope =linearRegression.getSlope();
-            obsTuple.push_back(slope);
+            obsTuple.values.push_back(slope);
             double intercept =linearRegression.getIntercept();
-            obsTuple.push_back(intercept);
+            obsTuple.values.push_back(intercept);
             obsForOneTrajectory.push_back(obsTuple);
+            data.updateFlatObsList(obsTuple);
         }
         data.addObs(obsForOneTrajectory);
     }
@@ -531,13 +507,21 @@ int Process::getActionIndex(Data &data, int action){
     return actionIndex;
 }
 
+void Process::trainObs(Data &data){
+    vector<double> * low  = data.getLow();
+    vector<double> * high = data.getHigh();
+    DETree observationModel(data.getFlatObsList(), low, high);
+    data.setObsModel(observationModel);
+    int x = 0;
+}
+
 void Process::generateTrajectories(Data &data, int numberOfTrajectories, bool forTrainingObs){
     for (int i = 0 ; i < numberOfTrajectories ; i++){
         buildAContinuousTrajectoryAndDiscreteTrajectory(data, forTrainingObs);
     }
     bildObsList(data);
     if(forTrainingObs){
-        //        trainObs(data);
+        trainObs(data);
     }
 }
 
