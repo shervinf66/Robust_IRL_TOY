@@ -13,6 +13,15 @@ Data::Data()
     for (double i = 0 ; i < _numberOfSamples ; i++){
         timeChunk.push_back(i);
     }
+
+    for (double i = 0 ; i < listOfStates.size() ; i++){
+        int state = listOfStates.at(i);
+        if (state == 10){
+            stateInitialPriorities[state] = 1.0;
+        }else{
+            stateInitialPriorities[state] = 0.0;
+        }
+    }
 }
 
 Data::~Data()

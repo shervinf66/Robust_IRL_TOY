@@ -3,6 +3,7 @@
 
 #include "data.h"
 #include <vector>
+#include <string>
 
 class Process
 {
@@ -22,8 +23,6 @@ private:
     int randomPolicy(Data &data);
     int transitionFunction(Data &data,int currentState, int currentAction);
     bool isInTerminlState(vector<double> &point);
-    bool isTerminlState(int state);
-    bool isBlockedlState(int state);
     double getRandomDoubleNumber(int lowerBound, int upperBound);
     int calcIntensityChangeFlag(Data &data, double intensityDifference);
     int getRandomIntNumber(int upperBound);
@@ -35,8 +34,20 @@ private:
 public:
     Process();
     ~Process();
+    bool isTerminalState(int state);
+    bool isBlockedlState(int state);
+    vector<double> getFeatures(int state, int action);
+    double calcInnerProduct(vector<double> v1, vector<double> v2);
+    double probablityOfNextStateGivenCurrentStateAction(Data &data,int nextState,int currentState,int currentAction);
     void generateTrajectories(Data &data, int numberOfTrajectories, bool forTrainingObs);
-
+    vector<double> multiply(double scalar, vector<double> v);
+    vector<double> divide(double scalar, vector<double> v);
+    vector<double> add(vector<double> v1, vector<double> v2);
+    double l1norm(vector<double> v);
+    double l2norm(vector<double> v);
+    DETree loadObsModel(Data &data);
+    bool areAdj(int state1, int state2);
+    vector<double> normalize(vector<double> v);
 };
 
 #endif // PROCESS_H

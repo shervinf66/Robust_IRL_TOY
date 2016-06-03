@@ -14,7 +14,7 @@ public:
     ~Sample();
 
     vector<double> values;
-    double p;
+    double p; //make uniform
 
     void init_rand(vector<double> *low_limit, vector<double> *high_limit);
     Sample combine(vector<double> second);

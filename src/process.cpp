@@ -10,6 +10,9 @@
 #include <algorithm>
 #include <random>
 #include <chrono>
+#include <fstream>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 
 using namespace std;
 
@@ -79,7 +82,7 @@ vector<double> Process::getObsSampleList(Data &data,vector<double> previousPoint
         vector<double> sample = continuousSampleList.at(i);
 
         double r2 = getDistanceToPowerTwo(sample);
-        double p = data.getP();
+        double p = data.getP(); // presure in intensity formula
 
         unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
         default_random_engine generator(seed);
@@ -140,7 +143,7 @@ void Process::buildAContinuousTrajectoryAndDiscreteTrajectory(Data &data, bool f
         if(isBlockedlState(nextState)){
             continue;
         }else{
-            if(isTerminlState(nextState)){
+            if(isTerminalState(nextState)){
                 action = 0;
                 done = true;
             }else{
@@ -171,6 +174,7 @@ void Process::buildAContinuousTrajectoryAndDiscreteTrajectory(Data &data, bool f
     }
     data.addAContinuousTrajectory(aContinusTrajectory);
     data.addADiscreteTrajectory(aDiscreteTrajectory);
+    data.updateNormalizerFactorForP((double)aDiscreteTrajectory.size() - 1);
     data.addObsSample(ObsSampleList);
 }
 
@@ -193,17 +197,21 @@ void Process::bildObsList(Data &data){
     int numberOfSamples = data.getNumberOfSamples();
 
     vector<vector<double> > obsSampleList = data.getObsSampleList();
+    vector< vector<vector<int> > > discreteTrajectories = data.getDiscreteTrajectories();
+    double normalizerForP = data.getNormalizerFactorForP();
 
     for (int i = 0 ; i < (int)obsSampleList.size() ; i++){
         vector<double> obsSampleForOneTrajectory = obsSampleList.at(i);
+        vector<vector<int> > aDiscreteTrajectory = discreteTrajectories.at(i);
 
-        // New way using regression that is continuous
+        // New way using regression. that is continuous
         vector<Sample > obsForOneTrajectory;
         for (int j = 0 ; j < (int)obsSampleForOneTrajectory.size() ; j = j + numberOfSamples){
             vector<double> IntensityChunk;
             for(int k = 0 ; k < numberOfSamples ; k++){
                 IntensityChunk.push_back(obsSampleForOneTrajectory.at(j + k));
             }
+            int stateAcionIndex = j / numberOfSamples;
             vector<double> timeChunk = data.getTimeChunk();
             Sample obsTuple;
             Maths::Regression::Linear linearRegression(numberOfSamples, timeChunk, IntensityChunk);
@@ -211,6 +219,9 @@ void Process::bildObsList(Data &data){
             obsTuple.values.push_back(slope);
             double intercept =linearRegression.getIntercept();
             obsTuple.values.push_back(intercept);
+            obsTuple.values.push_back(aDiscreteTrajectory.at(stateAcionIndex).at(0)); // adding state
+            obsTuple.values.push_back(aDiscreteTrajectory.at(stateAcionIndex).at(1)); // adding action
+            obsTuple.p = 1.0 / normalizerForP; //uniform
             obsForOneTrajectory.push_back(obsTuple);
             data.updateFlatObsList(obsTuple);
         }
@@ -334,6 +345,26 @@ int Process::randomPolicy(Data &data){
     int randomAction = listOfActions.at(getRandomIntNumber(listOfActions.size()));
     return randomAction;
 }
+double Process::probablityOfNextStateGivenCurrentStateAction(Data &data,int nextState, int currentState, int currentAction){
+    double stochasticity = data.getStochasticity();
+    int idealNextState = transitionFunction(data,currentState,currentAction);
+    double pr;
+    if(isBlockedlState(nextState)){
+        pr = 0.0;
+    }else if (nextState == idealNextState){
+        pr = 1.0 - stochasticity;
+    }else if(abs(nextState - currentState) == 10 || abs(nextState - currentState) == 1){
+        if(currentState == 10 || currentState == 11 || currentState == 13
+                || currentState == 20 || currentState == 33 || currentState == 30 || currentState == 31) {
+            pr = stochasticity / 2.0;
+        } else if(currentState == 12 || currentState == 23 || currentState == 32){
+            pr = stochasticity / 3.0;
+        }else{
+            pr = stochasticity / 4.0;
+        }
+    }
+    return pr;
+}
 
 int Process::transitionFunction(Data &data,int currentState, int currentAction){
     int nextState;
@@ -372,7 +403,7 @@ bool Process::isInTerminlState(vector<double> &point){
     return flag;
 }
 
-bool Process::isTerminlState(int state){
+bool Process::isTerminalState(int state){
     bool flag = false;
 
     if(state == 23 || state == 33){
@@ -512,7 +543,6 @@ void Process::trainObs(Data &data){
     vector<double> * high = data.getHigh();
     DETree observationModel(data.getFlatObsList(), low, high);
     data.setObsModel(observationModel);
-    int x = 0;
 }
 
 void Process::generateTrajectories(Data &data, int numberOfTrajectories, bool forTrainingObs){
@@ -522,6 +552,109 @@ void Process::generateTrajectories(Data &data, int numberOfTrajectories, bool fo
     bildObsList(data);
     if(forTrainingObs){
         trainObs(data);
+        // save the observation model
+        DETree observationModel = data.getObsModel();
+        string fileAddress = data.getObsModelAddress();
+//        ofstream f( fileAddress.c_str(), ios::binary );
+//        f.write( (char *) &observationModel, sizeof( observationModel ) );
+//        f.close();
+        // create and open a character archive for output
+        ofstream ofs(fileAddress.c_str());
+
+        boost::archive::text_oarchive oa(ofs);
+        // write class instance to archive
+        oa << observationModel;
     }
 }
 
+vector<double> Process::getFeatures(int state, int action){
+    vector<double> features;
+    if (state == 23 && action == 0){
+        features.push_back(1.0);
+        features.push_back(0.0);
+    }else if (state == 33 && action == 0){
+        features.push_back(0.0);
+        features.push_back(1.0);
+    }else{
+        features.push_back(0.0);
+        features.push_back(0.0);
+    }
+
+    return features;
+}
+
+double Process::calcInnerProduct(vector<double> v1, vector<double> v2){
+    return inner_product(v1.begin(), v1.end(), v2.begin(), 0);
+}
+
+vector<double> Process::multiply(double scalar, vector<double> v){
+    vector<double> result;
+    for (int i = 0 ; i < int(v.size()) ; i++){
+        result.push_back(scalar * v.at(i));
+    }
+    return result;
+}
+
+vector<double> Process::divide(double scalar, vector<double> v){
+    vector<double> result;
+    for (int i = 0 ; i < int(v.size()) ; i++){
+        result.push_back(v.at(i) / scalar);
+    }
+    return result;
+}
+
+vector<double> Process::add(vector<double> v1, vector<double> v2){
+    vector<double> result;
+    for (int i = 0 ; i < int(v1.size()) ; i++){
+        result.push_back(v1.at(i) + v2.at(i));
+    }
+    return result;
+}
+
+double Process::l1norm(vector<double> v){
+    double returnval = 0;
+    for (int i = 0 ; i < int(v.size()) ; i++){
+        returnval += abs(v.at(i));
+    }
+    return returnval;
+}
+
+double Process::l2norm(vector<double> v){
+    return sqrt(calcInnerProduct(v,v));
+}
+
+DETree Process::loadObsModel(Data &data){
+    DETree observationModel;
+    string fileAddress = data.getObsModelAddress();
+//    ifstream f( fileAddress.c_str(), ios::binary );
+//    f.read( (char *) &observationModel, sizeof( observationModel ) );
+//    f.close();
+    {
+        // create and open an archive for input
+        std::ifstream ifs(fileAddress.c_str());
+        boost::archive::text_iarchive ia(ifs);
+        // read class state from archive
+        ia >> observationModel;
+        // archive and stream closed when destructors are called
+    }
+    return observationModel;
+}
+
+bool  Process::areAdj(int state1, int state2){
+    if(abs(state1 - state2) == 0 || abs(state1 - state2) == 10 || abs(state1 - state2) == 1){
+        return true;
+    }
+    return false;
+}
+
+vector<double> Process::normalize(vector<double> v){
+    double sum = 0;
+    vector<double> result;
+    for (int i = 0 ; i < int(v.size()) ; i++){
+        sum = sum + v.at(i);
+    }
+    for (int i = 0 ; i < int(v.size()) ; i++){
+        result.push_back(v.at(i) / sum);
+    }
+    return result;
+}
