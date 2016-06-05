@@ -29,7 +29,7 @@ int main()
     //    w = rirl.exponentiatedGradient(data,pr,y,w_initial,1.0,0.1);
     //    cout << w.at(0) << endl;
     //    cout << w.at(1) << endl;
-    pr.generateTrajectories(data, 100, true);
+    pr.generateTrajectories(data, 10, true);
 
 //    cout << data.getListOfDiscreteTrajectories().at(0).size() << endl;
 //    cout << data.getListOfContinuousTrajectories().at(0).size() << endl;
@@ -44,9 +44,13 @@ int main()
     a.values.push_back(10);
     a.p = 0.010416666666666666;
 
-    double x = O.density_value(a,0.5);
+    double x = T.density_value(a,0.5);
 
-    cout << x << endl;
+    cout << "x: " << x << endl;
+
+    double xx = O.density_value(a,0.5);
+
+    cout << "xx: " << xx << endl;
 
 
     Sample b;
@@ -56,9 +60,14 @@ int main()
     b.values.push_back(-10);
     b.p = 0.010416666666666666;
 
-    double y = O.density_value(b,0.5);
+    double y = T.density_value(b,0.5);
 
-    cout << y << endl;
+    cout << "y: " << y << endl;
+
+    double yy = O.density_value(b,0.5);
+
+    cout << "yy: " << yy << endl;
+
     cout << "Done!" << endl;
 
 

@@ -9,7 +9,7 @@
 using namespace std;
 
 DETree::DETree(){
-    LOG(INFO) << "The DETree is not created, you should use create_tree explicitly to initialize the DETree";
+//    LOG(INFO) << "The DETree is not created, you should use create_tree explicitly to initialize the DETree";
 }
 
 DETree::DETree(vector<Sample> sample_set, vector<double> *sample_low, vector<double> *sample_high){

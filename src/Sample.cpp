@@ -7,6 +7,10 @@ Sample::~Sample(){
 //    LOG(INFO) << "SAMPLE CLASS DESTRUCTOR!";
 }
 
+Sample::Sample(){
+
+}
+
 size_t Sample::size(){
     return values.size();
 }

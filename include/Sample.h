@@ -3,6 +3,9 @@
 #include <string>
 #include <sstream>
 #include <glog/logging.h>
+// include headers that implement a archive in simple text format
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 using namespace std;
 
 #ifndef SAMPLE_H
@@ -11,6 +14,7 @@ using namespace std;
 class Sample{
 
 public:
+    Sample();
     ~Sample();
 
     vector<double> values;

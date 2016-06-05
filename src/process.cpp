@@ -432,53 +432,6 @@ int Process::getRandomIntNumber(int upperBound){
     return  rand() % upperBound;
 }
 
-// this old and for the descrite model. not in use any more
-/**
-void Process::trainObs(Data &data){
-    int numberOfDisObs = data.getNumberOfDisObs();
-    int numberOfStates = data.getListOfStates().size();
-    int numberOfAction = data.getListOfActions().size();
-    int numberOfRow = numberOfStates * numberOfAction;
-    int numberOfcolumn = numberOfDisObs * 3; // 3 is the number of flags -1 0 +1
-
-    vector< vector<int> > obsCounts (numberOfRow  , vector<int> (numberOfcolumn , 0));
-
-    vector<vector<vector<double> > > obsList = data.getObsList();
-    vector< vector<vector<int> > > discreteTrajectories = data.getDiscreteTrajectories();
-
-    for (int i = 0 ; i < (int)obsList.size() ; i++){
-        for (int j = 0 ; j < (int)obsList.at(i).size() ; j++){
-            vector<double> obsTuple = obsList.at(i).at(j);
-
-            int obsClass = obsTuple.at(0);
-            int ObsChangeFlag = obsTuple.at(1);
-
-            int state = discreteTrajectories.at(i).at(j).at(0);
-            int action = discreteTrajectories.at(i).at(j).at(1);
-            int actionIndex = getActionIndex(data, action);
-            int ObsChangeFlagIndex = getObsChangeFlagIndex(ObsChangeFlag);
-            int stateIndex = getStateIndex(data, state);
-
-            int rowIndex = stateIndex * numberOfAction + actionIndex;
-            int columnIndex = obsClass * 3 + ObsChangeFlagIndex;
-            obsCounts.at(rowIndex).at(columnIndex) += 1;
-        }
-    }
-    // normalize first!
-    vector< vector<double> > normalizedObsCounts = matrixNormalizer(obsCounts);
-    data.setObsModel(normalizedObsCounts);
-}
-
-vector< vector<double> > Process::matrixNormalizer(vector< vector<int> > obsCounts){
-    vector< vector<double> > result;
-    for (int i = 0 ; i < (int)obsCounts.size() ; i++){
-        vector<double> normalizedRow = rowNormalizer(obsCounts.at(i));
-        result.push_back(normalizedRow);
-    }
-    return result;
-}
-**/
-
 vector<double> Process::rowNormalizer(vector<int> row){
     vector<double> result;
     int sum = 0;
@@ -552,18 +505,7 @@ void Process::generateTrajectories(Data &data, int numberOfTrajectories, bool fo
     bildObsList(data);
     if(forTrainingObs){
         trainObs(data);
-        // save the observation model
-        DETree observationModel = data.getObsModel();
-        string fileAddress = data.getObsModelAddress();
-//        ofstream f( fileAddress.c_str(), ios::binary );
-//        f.write( (char *) &observationModel, sizeof( observationModel ) );
-//        f.close();
-        // create and open a character archive for output
-        ofstream ofs(fileAddress.c_str());
-
-        boost::archive::text_oarchive oa(ofs);
-        // write class instance to archive
-        oa << observationModel;
+        saveObsModel(data);
     }
 }
 
@@ -624,20 +566,51 @@ double Process::l2norm(vector<double> v){
 }
 
 DETree Process::loadObsModel(Data &data){
-    DETree observationModel;
+    vector<Sample> flatObsList;
     string fileAddress = data.getObsModelAddress();
-//    ifstream f( fileAddress.c_str(), ios::binary );
-//    f.read( (char *) &observationModel, sizeof( observationModel ) );
-//    f.close();
-    {
-        // create and open an archive for input
-        std::ifstream ifs(fileAddress.c_str());
-        boost::archive::text_iarchive ia(ifs);
-        // read class state from archive
-        ia >> observationModel;
-        // archive and stream closed when destructors are called
+    string line;
+    ifstream myfile (fileAddress.c_str());
+
+    if (myfile.is_open()){
+            Sample s;
+            int counter = 0;
+            while ( getline (myfile,line) ){
+                if(counter != 4){ // if you use nonlinear regression that 4 must be more. parameters+2(state,action)+1(p)-1
+                    s.values.push_back(stod(line));
+                    counter++;
+                }else{
+                    s.p = stod(line);
+                    flatObsList.push_back(s);
+                    s = Sample();
+                    counter = 0;
+                }
+            }
+
+        myfile.close();
+    }else{
+        cout << "Unable to open file";
     }
+    vector<double> * low  = data.getLow();
+    vector<double> * high = data.getHigh();
+    DETree observationModel(flatObsList, low, high);
+//    data.setObsModel(observationModel);
     return observationModel;
+}
+
+
+void Process::saveObsModel(Data &data){
+    vector<Sample> flatObsList = data.getFlatObsList();
+    ofstream myfile;
+    string fileAddress = data.getObsModelAddress();
+    myfile.open (fileAddress.c_str());
+    for (int i = 0 ; i < int(flatObsList.size()) ; i++){
+        cout << flatObsList.at(i).values.size() << endl;
+        for (int j = 0 ; j < int(flatObsList.at(i).values.size()) ; j++){
+            myfile << flatObsList.at(i).values.at(j)<< "\n";
+        }
+        myfile << flatObsList.at(i).p << "\n";
+    }
+    myfile.close();
 }
 
 bool  Process::areAdj(int state1, int state2){
