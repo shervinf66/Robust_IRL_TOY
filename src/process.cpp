@@ -13,6 +13,7 @@
 #include <fstream>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/vector.hpp>
 
 using namespace std;
 
@@ -193,7 +194,7 @@ int Process::calcIntensityChangeFlag(Data &data, double intensityDifference){
     return intensityChangeFlag;
 }
 
-void Process::bildObsList(Data &data){
+void Process::bildObsList(Data &data, bool forTrainingObs){
     int numberOfSamples = data.getNumberOfSamples();
 
     vector<vector<double> > obsSampleList = data.getObsSampleList();
@@ -219,8 +220,15 @@ void Process::bildObsList(Data &data){
             obsTuple.values.push_back(slope);
             double intercept =linearRegression.getIntercept();
             obsTuple.values.push_back(intercept);
-            obsTuple.values.push_back(aDiscreteTrajectory.at(stateAcionIndex).at(0)); // adding state
-            obsTuple.values.push_back(aDiscreteTrajectory.at(stateAcionIndex).at(1)); // adding action
+            if(forTrainingObs){
+                obsTuple.values.push_back(aDiscreteTrajectory.at(stateAcionIndex).at(0)); // adding state
+                obsTuple.values.push_back(aDiscreteTrajectory.at(stateAcionIndex).at(1)); // adding action
+            }
+//            else{
+//                obsTuple.values.push_back(-1); // adding dummy state
+//                obsTuple.values.push_back(-1); // adding dummy action
+//            }
+
             obsTuple.p = 1.0 / normalizerForP; //uniform
             obsForOneTrajectory.push_back(obsTuple);
             data.updateFlatObsList(obsTuple);
@@ -500,12 +508,18 @@ void Process::trainObs(Data &data){
 
 void Process::generateTrajectories(Data &data, int numberOfTrajectories, bool forTrainingObs){
     for (int i = 0 ; i < numberOfTrajectories ; i++){
+        cout << "Trajectory " << i << " is Done!\n";
         buildAContinuousTrajectoryAndDiscreteTrajectory(data, forTrainingObs);
     }
-    bildObsList(data);
+    cout << "Trajectories generated!\n";
+    cout << "bildObsList started!\n";
+    bildObsList(data, forTrainingObs);
+    cout << "bildObsListdone!\n";
     if(forTrainingObs){
         trainObs(data);
+        cout << "Saving obsModel!!\n";
         saveObsModel(data);
+        cout << "obsModel saved!\n";
     }
 }
 
@@ -568,32 +582,35 @@ double Process::l2norm(vector<double> v){
 DETree Process::loadObsModel(Data &data){
     vector<Sample> flatObsList;
     string fileAddress = data.getObsModelAddress();
-    string line;
-    ifstream myfile (fileAddress.c_str());
+    std::ifstream ifs(fileAddress);
+    boost::archive::text_iarchive ia(ifs);
+    ia >> flatObsList;
+    //    string line;
+    //    ifstream myfile (fileAddress.c_str());
 
-    if (myfile.is_open()){
-            Sample s;
-            int counter = 0;
-            while ( getline (myfile,line) ){
-                if(counter != 4){ // if you use nonlinear regression that 4 must be more. parameters+2(state,action)+1(p)-1
-                    s.values.push_back(stod(line));
-                    counter++;
-                }else{
-                    s.p = stod(line);
-                    flatObsList.push_back(s);
-                    s = Sample();
-                    counter = 0;
-                }
-            }
+    //    if (myfile.is_open()){
+    //        Sample s;
+    //        int counter = 0;
+    //        while ( getline (myfile,line) ){
+    //            if(counter != 4){ // if you use nonlinear regression that 4 must be more. parameters+2(state,action)+1(p)-1
+    //                s.values.push_back(stod(line));
+    //                counter++;
+    //            }else{
+    //                s.p = stod(line);
+    //                flatObsList.push_back(s);
+    //                s = Sample();
+    //                counter = 0;
+    //            }
+    //        }
 
-        myfile.close();
-    }else{
-        cout << "Unable to open file";
-    }
+    //        myfile.close();
+    //    }else{
+    //        cout << "Unable to open file";
+    //    }
     vector<double> * low  = data.getLow();
     vector<double> * high = data.getHigh();
     DETree observationModel(flatObsList, low, high);
-//    data.setObsModel(observationModel);
+    //    data.setObsModel(observationModel);
     return observationModel;
 }
 
@@ -603,14 +620,18 @@ void Process::saveObsModel(Data &data){
     ofstream myfile;
     string fileAddress = data.getObsModelAddress();
     myfile.open (fileAddress.c_str());
-    for (int i = 0 ; i < int(flatObsList.size()) ; i++){
-        cout << flatObsList.at(i).values.size() << endl;
-        for (int j = 0 ; j < int(flatObsList.at(i).values.size()) ; j++){
-            myfile << flatObsList.at(i).values.at(j)<< "\n";
-        }
-        myfile << flatObsList.at(i).p << "\n";
-    }
-    myfile.close();
+    //    for (int i = 0 ; i < int(flatObsList.size()) ; i++){
+    //        cout << flatObsList.at(i).values.size() << endl;
+    //        for (int j = 0 ; j < int(flatObsList.at(i).values.size()) ; j++){
+    //            myfile << flatObsList.at(i).values.at(j)<< "\n";
+    //        }
+    //        myfile << flatObsList.at(i).p << "\n";
+    //    }
+    //    myfile.close();
+    std::ofstream ofs(fileAddress.c_str());
+    boost::archive::text_oarchive oa(ofs);
+    // write class instance to archive
+    oa << flatObsList;
 }
 
 bool  Process::areAdj(int state1, int state2){

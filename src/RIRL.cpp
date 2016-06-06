@@ -301,28 +301,54 @@ double RIRL::calcPrT(Data &data, Process &pr, vector<vector<int>> t){
 
 double RIRL::calcPrTgivenW(Data & data, Process &pr, vector<vector<int>> t, int tIndex, vector<Sample> w){
     DETree obsModel = data.getObsModel();
-    vector<vector<vector<int>>> allPossibleT = data.getAllPissibleT();
     vector<double> listOfPrT = data.getListOfPrT();
     double prWgivenT = 1.0;
+    double normalizer = 0.0; //teta
+    vector<double> listOfPrWgivenSA;
+
     for(int i = 0 ; i < int(w.size()) ; i++){
-        // we should calc Pr(W|T) here. Talk to sina how to use DETree
-        prWgivenT = prWgivenT * 1.0 ; //replace 1.0
+        // we should calc Pr(W|T) here. Talk to sina how to use DETree done!
+        // update the sample by adding the (s,a)
+        Sample s = w.at(i);
+        s.values.push_back(t.at(i).at(0)); // state
+        s.values.push_back(t.at(i).at(1)); // action
+
+        double x = obsModel.density_value(s,0.5);
+        listOfPrWgivenSA.push_back(x);
+        normalizer = normalizer + x;
+//        prWgivenT = prWgivenT * 1.0 ; //replace 1.0
     }
+
+    for(int i = 0 ; i < int(listOfPrWgivenSA.size()) ; i++){
+        prWgivenT = prWgivenT * (listOfPrWgivenSA.at(i) / normalizer);
+    }
+
+    // normalize listOfPrWgivenSA
     return (prWgivenT * listOfPrT.at(tIndex));
 }
 
-void RIRL::constructPrTgivenW(Data & data, Process &pr,vector<vector<Sample>> allW){
+vector<double> RIRL::eStep(Data & data, Process &pr,vector<vector<Sample>> allW){ // E-step
     int trajectoryLenght = allW.at(0).size();
     constructAllT(data,pr,trajectoryLenght);
     vector<vector<vector<int>>> allPossibleT = data.getAllPissibleT();
     vector<double> listOfPrTgivenW;
 
-
     for(int i = 0 ; i < int(allPossibleT.size()) ; i++){
         listOfPrTgivenW.push_back(calcPrTgivenW(data, pr, allPossibleT.at(i),i,allW.at(i)));
     }
+    vector<double> expertFeatureVector(2, 0.0); // 2 ==> number of feaures
+
     vector<double> listOfPrTgivenWnormalized = pr.normalize(listOfPrTgivenW);
-    data.setListOfPrTgivenW(listOfPrTgivenWnormalized);
+    for(int i = 0 ; i < int(allPossibleT.size()) ; i++){
+        vector<vector<int>> t = allPossibleT.at(i);
+        for(int j = 0 ; j < int(t.size()) ; j++){
+            int state = t.at(j).at(0);
+            int action = t.at(j).at(1);
+            expertFeatureVector = pr.add(pr.multiply(listOfPrTgivenWnormalized.at(i+j), pr.getFeatures(state,action))
+                                         ,expertFeatureVector);
+        }
+    }
+return expertFeatureVector;
 }
 
 void RIRL::printNestedVector(vector<vector<int>> v){

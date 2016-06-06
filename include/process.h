@@ -14,7 +14,7 @@ private:
     vector<double> rowNormalizer(vector<int> row);
     vector<double> getObsSampleList(Data &data, vector<double> previousPoint, vector<double> currentPoint);
     void buildAContinuousTrajectoryAndDiscreteTrajectory(Data &data, bool forTrainingObs);
-    void bildObsList(Data &data);
+    void bildObsList(Data &data, bool forTrainingObs);
     int classifyObs(Data &data, double avg);
     vector<double> getRandomPointInState(Data &data, int state);
     vector<int> calcStateBoundaries(Data &data, int state);

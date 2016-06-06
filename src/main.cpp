@@ -29,11 +29,15 @@ int main()
     //    w = rirl.exponentiatedGradient(data,pr,y,w_initial,1.0,0.1);
     //    cout << w.at(0) << endl;
     //    cout << w.at(1) << endl;
-    pr.generateTrajectories(data, 10, true);
+//    pr.generateTrajectories(data, 10, true);
+    pr.generateTrajectories(data, 1, false);
 
 //    cout << data.getListOfDiscreteTrajectories().at(0).size() << endl;
 //    cout << data.getListOfContinuousTrajectories().at(0).size() << endl;
+
+    cout << "Loading ObsModel!" << endl;
     DETree T = pr.loadObsModel(data);
+    cout << "obsModel loaded!" << endl;
 
     DETree O = data.getObsModel();
 
@@ -48,9 +52,9 @@ int main()
 
     cout << "x: " << x << endl;
 
-    double xx = O.density_value(a,0.5);
+//    double xx = O.density_value(a,0.5);
 
-    cout << "xx: " << xx << endl;
+//    cout << "xx: " << xx << endl;
 
 
     Sample b;
@@ -64,9 +68,9 @@ int main()
 
     cout << "y: " << y << endl;
 
-    double yy = O.density_value(b,0.5);
+//    double yy = O.density_value(b,0.5);
 
-    cout << "yy: " << yy << endl;
+//    cout << "yy: " << yy << endl;
 
     cout << "Done!" << endl;
 
