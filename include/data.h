@@ -44,8 +44,6 @@ private:
     vector<double> weights;
     vector<double> listOfPrT;
     vector<double> listOfTgivenW;
-    vector<vector<double>> featureExpectationVector; //this vector contains feature ecpectation. the lenght of this is equall
-    // to number of input observation equence for learning. (used in recursive E-step)
     DETree observationModel;
     vector<vector<double> > obsSampleList;
     vector<Sample> flatObsList;
@@ -108,8 +106,6 @@ public:
     vector<double> getListOfPrT(){return listOfPrT;}
     void setListOfPrTgivenW(vector<double> lprtw){listOfTgivenW = lprtw;}
     vector<double> getListOfPrTgivenW(){return listOfTgivenW;}
-    void updateFeatureExpectationVector(vector<double> f){featureExpectationVector.push_back(f);}
-    vector<vector<double>> getFeatureExpectationVector(){return featureExpectationVector;}
 };
 
 

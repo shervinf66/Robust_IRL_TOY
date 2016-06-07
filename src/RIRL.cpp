@@ -204,156 +204,6 @@ vector<double> RIRL::exponentiatedGradient(Data &data, Process &pr, vector<doubl
     return w;
 }
 
-vector<vector<int>> RIRL::generateListOfAllSA(Data &data, Process &pr){
-    vector<vector<int>> listOfAllSA;
-    vector<int> s = data.getListOfStates();
-    vector<int> a = data.getListOfActions();
-    for(int i = 0 ; i < int(s.size()) ; i++){
-        int state = s.at(i);
-        if(state != 23 && state != 33 && state != 21){// !pr.isTerminalState(state) && pr.isBlockedlState(state)
-            for(int j = 0 ; j < int(a.size()) ; j++){
-                int action = a.at(j);
-                vector<int> saPair;
-                saPair.push_back(state);
-                saPair.push_back(action);
-                listOfAllSA.push_back(saPair);
-            }
-        }else if(state == 23 || state == 33){//pr.isTerminalState(state)
-            int action = 0;
-            vector<int> saPair;
-            saPair.push_back(state);
-            saPair.push_back(action);
-            listOfAllSA.push_back(saPair);
-        }
-    }
-
-    return listOfAllSA;
-}
-
-void RIRL::constructAllT(Data &data, Process &pr, int trajectoryLenght){ //trajectoryLenght=r
-    vector< vector<int>> listOfAllPairs = generateListOfAllSA(data, pr);
-    vector<vector<vector<int>>> result;
-    int n = listOfAllPairs.size();
-    vector<bool> indicator(n);
-    fill(indicator.begin(), indicator.end() - n + trajectoryLenght, true); // which one should be included
-    bool validT ;
-    vector<int> order(trajectoryLenght); //trajectoryLenght == r
-    iota(order.begin(), order.end(), 0); // order, permutation
-    int counter = 0;
-    do {
-        do {
-            counter++;
-            int orderCounter = 0;
-            validT = false;
-            vector<vector<int>> temp(trajectoryLenght);
-            int previousState = 10;
-            for(int i = 0 ; i < n ; i++){
-                if(indicator.at(i) && pr.areAdj(listOfAllPairs.at(i).at(0), previousState)){
-                    temp.at(order.at(orderCounter)) = listOfAllPairs.at(i);
-                    orderCounter++;
-                    previousState = listOfAllPairs.at(i).at(0);
-                    validT = true;
-                }else if(indicator.at(i) && !pr.areAdj(listOfAllPairs.at(i).at(0), previousState)){
-                    validT = false;
-                    break;
-                }
-                if(i == 5){
-                    if(temp.at(0).empty()){
-                        validT = false;
-                        break;
-                    }
-                    if(temp.at(0).at(0) == 10.0){
-                        validT = true;
-                    }else{
-                        validT = false;
-                        break;
-                    }
-                }
-            }
-            if (validT){
-                result.push_back(temp);
-                double prt = calcPrT(data, pr, temp);
-                data.updatePrT(prt);
-            }
-        } while(next_permutation(order.begin(), order.end()));
-    } while (prev_permutation(indicator.begin(), indicator.end()));
-    cout << "number of T: " << result.size() << endl;
-    data.setAllpossibleT(result);
-
-    //it does not consider tuples of state action repitetd however state can be reapited
-}
-
-double RIRL::calcPrT(Data &data, Process &pr, vector<vector<int>> t){
-    int initialState = t.at(0).at(0);
-    double prInitialState = data.getStateInitialPriority(initialState);
-    double multiplication = 1.0;
-    for(int i = 1 ; i < int(t.size()) - 1 ; i++){
-        int currentState = t.at(i).at(0);
-        int nextState = t.at(i+1).at(0);
-        int action = t.at(i).at(1);
-        multiplication = multiplication *
-                pr.probablityOfNextStateGivenCurrentStateAction(data,nextState,currentState,action) *
-                data.getPrActionGivenState(currentState, action);
-    }
-    double result = prInitialState * multiplication;
-    return result;
-}
-
-double RIRL::calcPrTgivenW(Data & data, Process &pr, vector<vector<int>> t, int tIndex, vector<Sample> w){
-    DETree obsModel = data.getObsModel();
-    vector<double> listOfPrT = data.getListOfPrT();
-    double prWgivenT = 1.0;
-    double normalizer = 0.0; //teta
-    vector<double> listOfPrWgivenSA;
-
-    for(int i = 0 ; i < int(w.size()) ; i++){
-        // we should calc Pr(W|T) here. Talk to sina how to use DETree done!
-        // update the sample by adding the (s,a)
-        Sample s = w.at(i);
-        s.values.push_back(t.at(i).at(0)); // state
-        s.values.push_back(t.at(i).at(1)); // action
-
-        double x = obsModel.density_value(s,0.5);
-        listOfPrWgivenSA.push_back(x);
-        normalizer = normalizer + x;
-        //        prWgivenT = prWgivenT * 1.0 ; //replace 1.0
-    }
-
-    for(int i = 0 ; i < int(listOfPrWgivenSA.size()) ; i++){
-        prWgivenT = prWgivenT * (listOfPrWgivenSA.at(i) / normalizer);
-    }
-
-    // normalize listOfPrWgivenSA
-    return (prWgivenT * listOfPrT.at(tIndex));
-}
-
-vector<double> RIRL::eStep(Data & data, Process &pr, vector<vector<Sample> > allW){ // E-step
-    int trajectoryLenght = allW.at(0).size();
-    constructAllT(data,pr,trajectoryLenght);
-    vector<vector<vector<int>>> allPossibleT = data.getAllPissibleT();
-    vector<double> listOfPrTgivenW; // convert it to map
-
-    for(int i = 0 ; i < int(allW.size()) ; i++){// for all W
-        for(int j = 0 ; j < int(allPossibleT.size()) ; j++){// for all T
-            listOfPrTgivenW.push_back(calcPrTgivenW(data, pr, allPossibleT.at(j),j,allW.at(i)));
-        }
-    }
-    vector<double> expertFeatureVector(2, 0.0); // 2 ==> number of feaures
-
-    vector<double> listOfPrTgivenWnormalized = pr.normalize(listOfPrTgivenW);
-    for(int i = 0 ; i < int(allPossibleT.size()) ; i++){
-        vector<vector<int>> t = allPossibleT.at(i);
-        for(int j = 0 ; j < int(t.size()) ; j++){
-            int state = t.at(j).at(0);
-            int action = t.at(j).at(1);
-            expertFeatureVector = pr.add(pr.multiply(listOfPrTgivenWnormalized.at(i),
-                                                     pr.getFeatures(state,action))
-                                         ,expertFeatureVector);
-        }
-    }
-    return expertFeatureVector;
-}
-
 vector<Node> RIRL::returnChildren(Data &data, Process &pr, Node node){
     vector<int> listOfStates = data.getListOfStates();
     vector<int> listOfActions = data.getListOfActions();
@@ -398,11 +248,34 @@ vector<Node> RIRL::returnChildren(Data &data, Process &pr, Node node){
     return result;
 }
 
-void RIRL::eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node node, int level
-                          ,double prT, double prWgivenT,double normalizerForObsModel,
-                          double &normalizerVectorForPrTgivenW, vector<double> &featureVector,
-                          vector<double> &featureExpectationVector){ // E-step recursive
+vector<double> RIRL::eStepMain(Data &data, Process &pr, vector<vector<Sample>> allW){ // E-step main function
+    // to retain the ultimate feature count
+    vector<double> f(2,0.0);
 
+    // go through all observation sequence
+    for(int i = 0 ; i < int(allW.size()) ; i++){
+        vector<Sample> w = allW.at(i);
+        double normalizerVectorForPrTgivenW = 0;
+        vector<double> featureExpectation(2,0.0);
+        vector<double> featureVector(2,0.0);
+        Node node;
+        node.isFakeNode = true;
+        eStepRecursiveUtil(data,pr,w,node,0,1,1,0,
+                           normalizerVectorForPrTgivenW,
+                           featureVector,featureExpectation);
+        //normlize featureExpectation
+        for (int j = 0 ; j < int(featureExpectation.size()) ; j++){
+            featureExpectation.at(j) = featureExpectation.at(j) / normalizerVectorForPrTgivenW;
+        }
+        f = pr.add(f,featureExpectation);
+    }
+    return f;
+}
+
+void RIRL::eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node node, int level
+                              ,double prT, double prWgivenT,double normalizerForObsModel,
+                              double &normalizerVectorForPrTgivenW, vector<double> &featureVector,
+                              vector<double> &featureExpectationVector){ // E-step recursive
     if(level == int(w.size())){
         double prWgivenTNormalized = prWgivenT / normalizerForObsModel;
         double prTgivenW = prWgivenTNormalized * prT;

@@ -30,7 +30,7 @@ int main()
     //    cout << w.at(0) << endl;
     //    cout << w.at(1) << endl;
     //    pr.generateTrajectories(data, 10, true);
-    pr.generateTrajectories(data, 1, false);
+    pr.generateTrajectories(data, 2, false);
 
     //    cout << data.getListOfDiscreteTrajectories().at(0).size() << endl;
     //    cout << data.getListOfContinuousTrajectories().at(0).size() << endl;
@@ -41,11 +41,17 @@ int main()
     //initialize policy
     rirl.initializePolicy(data,pr);
     vector<vector<Sample > > obsList = data.getObsList();
-    //    cout << obsList.at(0).size() << endl;
-    //    obsList.at(0).pop_back();
+//    cout << obsList.at(0).size() << endl;
+//    obsList.at(0).pop_back();
     cout << obsList.at(0).size() << endl;
-    vector<double> expertFeatureVector = rirl.eStep(data, pr, obsList);
+    // new version:
+    vector<double> expertFeatureVector = rirl.eStepMain(data,pr,obsList);
+
     rirl.printVector(expertFeatureVector);
+
+    //    old version
+    //    vector<double> expertFeatureVector = rirl.eStep(data, pr, obsList);
+    //    rirl.printVector(expertFeatureVector);
     //    DETree O = data.getObsModel();
 
     //    Sample a;
