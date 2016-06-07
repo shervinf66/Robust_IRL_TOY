@@ -224,10 +224,10 @@ void Process::bildObsList(Data &data, bool forTrainingObs){
                 obsTuple.values.push_back(aDiscreteTrajectory.at(stateAcionIndex).at(0)); // adding state
                 obsTuple.values.push_back(aDiscreteTrajectory.at(stateAcionIndex).at(1)); // adding action
             }
-//            else{
-//                obsTuple.values.push_back(-1); // adding dummy state
-//                obsTuple.values.push_back(-1); // adding dummy action
-//            }
+            //            else{
+            //                obsTuple.values.push_back(-1); // adding dummy state
+            //                obsTuple.values.push_back(-1); // adding dummy action
+            //            }
 
             obsTuple.p = 1.0 / normalizerForP; //uniform
             obsForOneTrajectory.push_back(obsTuple);
@@ -610,7 +610,7 @@ DETree Process::loadObsModel(Data &data){
     vector<double> * low  = data.getLow();
     vector<double> * high = data.getHigh();
     DETree observationModel(flatObsList, low, high);
-    //    data.setObsModel(observationModel);
+    data.setObsModel(observationModel);
     return observationModel;
 }
 

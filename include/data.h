@@ -6,7 +6,7 @@
 
 #include <vector>
 #include <map>
- #include <string>
+#include <string>
 
 using namespace std;
 
@@ -23,7 +23,7 @@ private:
     static const int _intensityChangeThreshold = 0;
     static const int _numberOfFeatures = 2;
     static const int _sample_length = 50; // lower than this number (34) will return nan or wrong weights.
-                                          // beacuse lower a number is not suficient to figure out policiy.
+    // beacuse lower a number is not suficient to figure out policiy.
     static constexpr double _stochasticity = 0.0;
     static constexpr double _p = 50000.0;
     static constexpr double _sigma = 1.0;
@@ -44,6 +44,8 @@ private:
     vector<double> weights;
     vector<double> listOfPrT;
     vector<double> listOfTgivenW;
+    vector<vector<double>> featureExpectationVector; //this vector contains feature ecpectation. the lenght of this is equall
+    // to number of input observation equence for learning. (used in recursive E-step)
     DETree observationModel;
     vector<vector<double> > obsSampleList;
     vector<Sample> flatObsList;
@@ -106,6 +108,8 @@ public:
     vector<double> getListOfPrT(){return listOfPrT;}
     void setListOfPrTgivenW(vector<double> lprtw){listOfTgivenW = lprtw;}
     vector<double> getListOfPrTgivenW(){return listOfTgivenW;}
+    void updateFeatureExpectationVector(vector<double> f){featureExpectationVector.push_back(f);}
+    vector<vector<double>> getFeatureExpectationVector(){return featureExpectationVector;}
 };
 
 

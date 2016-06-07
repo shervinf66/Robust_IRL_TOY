@@ -235,10 +235,10 @@ void RIRL::constructAllT(Data &data, Process &pr, int trajectoryLenght){ //traje
     vector<vector<vector<int>>> result;
     int n = listOfAllPairs.size();
     vector<bool> indicator(n);
-    fill(indicator.begin(), indicator.end() - n + trajectoryLenght, true);
+    fill(indicator.begin(), indicator.end() - n + trajectoryLenght, true); // which one should be included
     bool validT ;
     vector<int> order(trajectoryLenght); //trajectoryLenght == r
-    iota(order.begin(), order.end(), 0);
+    iota(order.begin(), order.end(), 0); // order, permutation
     int counter = 0;
     do {
         do {
@@ -287,7 +287,7 @@ double RIRL::calcPrT(Data &data, Process &pr, vector<vector<int>> t){
     int initialState = t.at(0).at(0);
     double prInitialState = data.getStateInitialPriority(initialState);
     double multiplication = 1.0;
-    for(int i = 0 ; i < int(t.size()) - 1 ; i++){
+    for(int i = 1 ; i < int(t.size()) - 1 ; i++){
         int currentState = t.at(i).at(0);
         int nextState = t.at(i+1).at(0);
         int action = t.at(i).at(1);
@@ -295,7 +295,7 @@ double RIRL::calcPrT(Data &data, Process &pr, vector<vector<int>> t){
                 pr.probablityOfNextStateGivenCurrentStateAction(data,nextState,currentState,action) *
                 data.getPrActionGivenState(currentState, action);
     }
-    int result = prInitialState * multiplication;
+    double result = prInitialState * multiplication;
     return result;
 }
 
@@ -316,7 +316,7 @@ double RIRL::calcPrTgivenW(Data & data, Process &pr, vector<vector<int>> t, int 
         double x = obsModel.density_value(s,0.5);
         listOfPrWgivenSA.push_back(x);
         normalizer = normalizer + x;
-//        prWgivenT = prWgivenT * 1.0 ; //replace 1.0
+        //        prWgivenT = prWgivenT * 1.0 ; //replace 1.0
     }
 
     for(int i = 0 ; i < int(listOfPrWgivenSA.size()) ; i++){
@@ -327,14 +327,16 @@ double RIRL::calcPrTgivenW(Data & data, Process &pr, vector<vector<int>> t, int 
     return (prWgivenT * listOfPrT.at(tIndex));
 }
 
-vector<double> RIRL::eStep(Data & data, Process &pr,vector<vector<Sample>> allW){ // E-step
+vector<double> RIRL::eStep(Data & data, Process &pr, vector<vector<Sample> > allW){ // E-step
     int trajectoryLenght = allW.at(0).size();
     constructAllT(data,pr,trajectoryLenght);
     vector<vector<vector<int>>> allPossibleT = data.getAllPissibleT();
-    vector<double> listOfPrTgivenW;
+    vector<double> listOfPrTgivenW; // convert it to map
 
-    for(int i = 0 ; i < int(allPossibleT.size()) ; i++){
-        listOfPrTgivenW.push_back(calcPrTgivenW(data, pr, allPossibleT.at(i),i,allW.at(i)));
+    for(int i = 0 ; i < int(allW.size()) ; i++){// for all W
+        for(int j = 0 ; j < int(allPossibleT.size()) ; j++){// for all T
+            listOfPrTgivenW.push_back(calcPrTgivenW(data, pr, allPossibleT.at(j),j,allW.at(i)));
+        }
     }
     vector<double> expertFeatureVector(2, 0.0); // 2 ==> number of feaures
 
@@ -344,11 +346,117 @@ vector<double> RIRL::eStep(Data & data, Process &pr,vector<vector<Sample>> allW)
         for(int j = 0 ; j < int(t.size()) ; j++){
             int state = t.at(j).at(0);
             int action = t.at(j).at(1);
-            expertFeatureVector = pr.add(pr.multiply(listOfPrTgivenWnormalized.at(i+j), pr.getFeatures(state,action))
+            expertFeatureVector = pr.add(pr.multiply(listOfPrTgivenWnormalized.at(i),
+                                                     pr.getFeatures(state,action))
                                          ,expertFeatureVector);
         }
     }
-return expertFeatureVector;
+    return expertFeatureVector;
+}
+
+vector<Node> RIRL::returnChildren(Data &data, Process &pr, Node node){
+    vector<int> listOfStates = data.getListOfStates();
+    vector<int> listOfActions = data.getListOfActions();
+    vector<Node> result;
+
+    if(node.isFakeNode){
+        // generate a list of initial states
+        for(int i = 0 ; i < 1 ; i++){//just consider 10 for initial state
+            for(int j = 0 ; j < int(listOfActions.size()) ; j++){
+                Node child;
+                child.isFakeNode = false;
+                child.isInitalState = true;
+                child.state = listOfStates.at(i);
+                child.action = listOfActions.at(j);
+                result.push_back(child);
+            }
+        }
+    }else{
+        for(int i = 0 ; i < int(listOfStates.size()) ; i++){
+            for(int j = 0 ; j < int(listOfActions.size()) ; j++){
+                Node child;
+                child.previousState = node.state;
+                child.previousAction = node.action;
+                child.isFakeNode = false;
+                child.isInitalState = false;
+                if(!pr.areAdj(listOfStates.at(i), node.state)
+                        || pr.isBlockedlState(listOfStates.at(i))){//check for adjacent states
+                    break;
+                }else if(pr.isTerminalState(listOfStates.at(i))){
+                    child.state = listOfStates.at(i);
+                    child.action = 0;//do nothing in the terminal state
+                    result.push_back(child);
+                    break;
+                }else{
+                    child.state = listOfStates.at(i);
+                    child.action = listOfActions.at(j);
+                    result.push_back(child);
+                }
+            }
+        }
+    }
+    return result;
+}
+
+void RIRL::eStepRecursive(Data &data, Process &pr, vector<Sample> w, Node node, int level
+                          ,double prT, double prWgivenT,double normalizerForObsModel,
+                          vector<double> &normalizerVectorForPrTgivenW, vector<double> &featureVector){ // E-step recursive
+    if(level == w.size()){
+        double prWgivenTNormalized = prWgivenT / normalizerForObsModel;
+        double prTgivenW = prWgivenTNormalized * prT;
+
+        //        vector<double> f = pr.multiply(prWgivenTNormalized, featureVector);// feature expectation vector
+        //        data.updateFeatureExpectationVector(f); // added new feature expectation for responding observation sequence
+        return;
+    }
+    vector<Node> children = returnChildren(data, pr, node);
+    for(int i = 0 ; i < int(children.size()) ; i++){
+        //check if in the initial state so the updating parameters will be different
+        Node child = children.at(i);
+        vector<double> tempFeatureVector = featureVector;
+
+        //updating common parameters before recursive call.
+        int newLevel = level + 1;
+        double newPrT;
+        Sample s = w.at(level);
+        s.values.push_back(child.state);
+        s.values.push_back(child.action);
+        double newPrWgivenT = prWgivenT * data.getObsModel().density_value(s,0.5);
+        double newNormalizerForObsModel = normalizerForObsModel + data.getObsModel().density_value(s,0.5);;
+        featureVector = pr.getFeatures(child.state,child.action);
+
+        if(child.isInitalState){// updating parameters before recursive call. if we are in initial state.
+            newPrT = prT * data.getStateInitialPriority(child.state);
+
+        }else{ // updating parameters before recursive call. if we are not in initial state.
+            newPrT = prT * pr.probablityOfNextStateGivenCurrentStateAction(data,child.state,
+                                                                           child.previousState,child.previousAction) *
+                    data.getPolicy()[child.previousState][child.previousAction];
+        }
+        // recursive call
+
+        // restore feature vector for going back to the previous level
+        featureVector = tempFeatureVector;
+    }
+}
+
+void RIRL::initializePolicy(Data & data, Process &pr){
+    vector<int> listOfStates = data.getListOfStates();
+    vector<int> listOfActions = data.getListOfActions();
+    map<int,map<int,double>> policy; //[State][Action]
+    // initialize policy so the Pr(T) would not be zero at begining!
+    for (int i = 0 ; i < int(listOfStates.size()) ; i++){ //i ==> state
+        int state = listOfStates.at(i);
+        if (pr.isTerminalState(state)) {
+            policy[state][0] = 1.0; // uniform
+        } else {
+            for (int j = 0 ; j < int(listOfActions.size()) ; j++){ //j ==> acttion
+                int action = listOfActions.at(j);
+                policy[state][action] = 0.2; // uniform 5 action
+            }
+        }
+    }
+    data.updatePolicy(policy);
 }
 
 void RIRL::printNestedVector(vector<vector<int>> v){
@@ -362,5 +470,11 @@ void RIRL::printNestedVector(vector<vector<int>> v){
     }
     cout << counter << endl;
     myfile << counter << endl;
+}
+
+void RIRL::printVector(vector<double> v){
+    for(int i = 0 ; i < int(v.size()) ; i++){
+        cout << v.at(i) << " , " << endl;
+    }
 }
 
