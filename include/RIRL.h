@@ -35,9 +35,12 @@ public:
                                          vector<double> w, double c, double err); // the two above together are M-Step
     vector<double> eStep(Data & data, Process &pr, vector<vector<Sample> > allW);// E-step
 
-    void eStepRecursive(Data &data, Process &pr, vector<Sample> w, Node node, int level
-                                  ,double prT, double prWgivenT,double normalizerForObsModel,
-                                  vector<double> &normalizerVectorForPrTgivenW, vector<double> &featureVector); // E-step recursive call
+    //normalizerVectorForPrTgivenW and featureExpectationVector must initialize to zero
+    // before calling eStepRecursiveUtil in the main e_step function
+    void eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node node, int level
+                                  , double prT, double prWgivenT, double normalizerForObsModel,
+                                  double &normalizerVectorForPrTgivenW, vector<double> &featureVector
+                            , vector<double> &featureExpectationVector); // E-step recursive call
 
     void initializePolicy(Data & data, Process &pr);
     void printNestedVector(vector<vector<int>> v); // for debugging

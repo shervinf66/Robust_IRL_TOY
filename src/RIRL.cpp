@@ -398,15 +398,19 @@ vector<Node> RIRL::returnChildren(Data &data, Process &pr, Node node){
     return result;
 }
 
-void RIRL::eStepRecursive(Data &data, Process &pr, vector<Sample> w, Node node, int level
+void RIRL::eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node node, int level
                           ,double prT, double prWgivenT,double normalizerForObsModel,
-                          vector<double> &normalizerVectorForPrTgivenW, vector<double> &featureVector){ // E-step recursive
-    if(level == w.size()){
+                          double &normalizerVectorForPrTgivenW, vector<double> &featureVector,
+                          vector<double> &featureExpectationVector){ // E-step recursive
+
+    if(level == int(w.size())){
         double prWgivenTNormalized = prWgivenT / normalizerForObsModel;
         double prTgivenW = prWgivenTNormalized * prT;
-
-        //        vector<double> f = pr.multiply(prWgivenTNormalized, featureVector);// feature expectation vector
-        //        data.updateFeatureExpectationVector(f); // added new feature expectation for responding observation sequence
+        // accumulate normalizer after compilation of each T
+        normalizerVectorForPrTgivenW = normalizerVectorForPrTgivenW + prTgivenW;
+        //later i need to normalize normalize this featureExpectationVector in the eStep function
+        featureExpectationVector = pr.add(featureExpectationVector,
+                                          pr.multiply(prTgivenW, featureVector));
         return;
     }
     vector<Node> children = returnChildren(data, pr, node);
@@ -434,8 +438,10 @@ void RIRL::eStepRecursive(Data &data, Process &pr, vector<Sample> w, Node node, 
                     data.getPolicy()[child.previousState][child.previousAction];
         }
         // recursive call
-
+        eStepRecursiveUtil(data,pr,w,child,newLevel,newPrT,newPrWgivenT,newNormalizerForObsModel,
+                           normalizerVectorForPrTgivenW,featureVector,featureExpectationVector);
         // restore feature vector for going back to the previous level
+        // normalizerVectorForPrTgivenW and featureExpectationVector must keep acumulate for all Ts
         featureVector = tempFeatureVector;
     }
 }
