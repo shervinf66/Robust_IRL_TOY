@@ -35,7 +35,7 @@ public:
     void eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node node, int level
                                   , double prT, double prWgivenT, double normalizerForObsModel,
                                   double &normalizerVectorForPrTgivenW, vector<double> &featureVector
-                            , vector<double> &featureExpectationVector); // E-step recursive call
+                            , vector<double> &featureExpectationVector, int &tCounter, vector<vector<int> > &t); // E-step recursive call
 
     vector<double> eStep(Data &data, Process &pr, vector<vector<Sample>> allW); // E-step main function
 

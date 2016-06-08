@@ -24,7 +24,7 @@ private:
     static const int _numberOfFeatures = 2;
     static const int _sample_length = 50; // lower than this number (34) will return nan or wrong weights.
     // beacuse lower a number is not suficient to figure out policiy.
-    static constexpr double _stochasticity = 0.1;
+    static constexpr double _stochasticity = 0.0;
     static constexpr double _p = 50000.0;
     static constexpr double _sigma = 1.0;
     static constexpr double _mean = 0.0;
@@ -51,7 +51,7 @@ private:
     vector< vector<vector<double> > > continuousTrajectories;
     vector< vector<vector<int> > > discreteTrajectories;
     vector<vector<vector<int>>> allpossibleT;
-    map<int,double> stateInitialPriorities; //[State]
+    map<int,double> stateInitialPriorities; //[State] // modified for debug
     map<int,map<int,double>> policy; //[State][Action] we have to update this in M-step
 
 public:
@@ -89,7 +89,7 @@ public:
     double getMaxIntensity(){return _maxIntensity;}
     double getObsStepSize(){return _obsStepSize;}
     map<int,double> getListOfStateInitialPriorities(){return stateInitialPriorities;}
-    double getStateInitialPriority(int state){return stateInitialPriorities[state];}
+    double getStateInitialPriority(int state){return stateInitialPriorities[state];} // modified for debug
     void updateFlatObsList (Sample sample){flatObsList.push_back(sample);}
     void addAContinuousTrajectory(vector<vector<double> > ct){continuousTrajectories.push_back(ct);}
     void addADiscreteTrajectory(vector<vector<int> > dt){discreteTrajectories.push_back(dt);}

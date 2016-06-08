@@ -63,14 +63,14 @@ vector<double> RIRL::calcFeatureExpectationLeft(Data &data, Process &pr, vector<
             int currentState = listOfStates.at(j);
             double sum = 0.0;
             if (pr.isTerminalState(currentState)) {
-                sum = sum + z_a[currentState][0];
+                sum = sum + z_a[currentState][0] + 1;
             } else {
                 for (int k = 0 ; k < int(listOfActions.size()) ; k++){ //k ==> acttion
                     int action = listOfActions.at(k);
                     sum = sum + z_a[currentState][action];
                 }
             }
-            z_s[currentState] = sum + 1;
+            z_s[currentState] = sum;
         }
     }
     // local action probability computation
@@ -211,7 +211,7 @@ vector<Node> RIRL::returnChildren(Data &data, Process &pr, Node node){
 
     if(node.isFakeNode){
         // generate a list of initial states
-        for(int i = 0 ; i < 1 ; i++){//just consider 10 for initial state
+        for(int i = 10 ; i < 11 ; i++){//just consider 10 for initial state // modified for debug change back to for(int i = 0 ; i < 1 ; i++)
             for(int j = 0 ; j < int(listOfActions.size()) ; j++){
                 Node child;
                 child.isFakeNode = false;
@@ -222,23 +222,26 @@ vector<Node> RIRL::returnChildren(Data &data, Process &pr, Node node){
             }
         }
     }else{
-        for(int i = 0 ; i < int(listOfStates.size()) ; i++){
+        // if there is in terminal state not more child
+        if(pr.isTerminalState(node.state)){
+            return result;
+        }else{
+            // calc the next state using dtermistic transision function
+            // then iterate through all action and make all children
             for(int j = 0 ; j < int(listOfActions.size()) ; j++){
                 Node child;
                 child.previousState = node.state;
                 child.previousAction = node.action;
                 child.isFakeNode = false;
                 child.isInitalState = false;
-                if(!pr.areAdj(listOfStates.at(i), node.state)
-                        || pr.isBlockedlState(listOfStates.at(i))){//check for adjacent states
-                    break;
-                }else if(pr.isTerminalState(listOfStates.at(i))){
-                    child.state = listOfStates.at(i);
-                    child.action = 0;//do nothing in the terminal state
+                // should if the next state is a terminal state just add action do nothing
+                int nextState = pr.nextState(data,node.state,node.action);
+                child.state = nextState;
+                if (pr.isTerminalState(nextState)){
+                    child.action = 0;
                     result.push_back(child);
                     break;
                 }else{
-                    child.state = listOfStates.at(i);
                     child.action = listOfActions.at(j);
                     result.push_back(child);
                 }
@@ -253,21 +256,25 @@ vector<double> RIRL::eStep(Data &data, Process &pr, vector<vector<Sample>> allW)
     vector<double> f(2,0.0);
 
     // go through all observation sequence
+
     for(int i = 0 ; i < int(allW.size()) ; i++){
         vector<Sample> w = allW.at(i);
         double normalizerVectorForPrTgivenW = 0.0;
         vector<double> featureExpectation(2,0.0);
         vector<double> featureVector(2,0.0);
+        vector<vector<int>> t;
         Node node;
         node.isFakeNode = true;
+        int tCounter = 0 ;// the tCounter show number of trajectories considered.
         eStepRecursiveUtil(data,pr,w,node,0,1,1,0,
                            normalizerVectorForPrTgivenW,
-                           featureVector,featureExpectation);
+                           featureVector,featureExpectation,tCounter,t);
         //normlize featureExpectation
         for (int j = 0 ; j < int(featureExpectation.size()) ; j++){
             featureExpectation.at(j) = featureExpectation.at(j) / normalizerVectorForPrTgivenW;
         }
         f = pr.add(f,featureExpectation);
+        cout << "Number of T considered is: " << tCounter << endl;
     }
     return f;
 }
@@ -275,7 +282,8 @@ vector<double> RIRL::eStep(Data &data, Process &pr, vector<vector<Sample>> allW)
 void RIRL::eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node node, int level
                               ,double prT, double prWgivenT,double normalizerForObsModel,
                               double &normalizerVectorForPrTgivenW, vector<double> &featureVector,
-                              vector<double> &featureExpectationVector){ // E-step recursive
+                              vector<double> &featureExpectationVector, int &tCounter,
+                              vector<vector<int>> &t){ // E-step recursive // counter total number of T considered // adding T to print trajectory at end of recursion call
     //    cout << level << endl;
     if(level == int(w.size())){
         double prWgivenTNormalized = prWgivenT / normalizerForObsModel;
@@ -283,18 +291,13 @@ void RIRL::eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node no
         // accumulate normalizer after compilation of each T
         normalizerVectorForPrTgivenW = normalizerVectorForPrTgivenW + prTgivenW;
         //later i need to normalize normalize this featureExpectationVector in the eStep function
-        //        printVector(featureVector); // for ken
-        if(featureVector.at(0)> 1 || featureVector.at(1)> 1){
-            if(node.state == 33){
-                cout<< "33!" << endl;
-                printVector(featureVector);
-            }else if(node.state == 23){
-                cout<< "23!" << endl;
-                printVector(featureVector);
-            }
-        }
         featureExpectationVector = pr.add(featureExpectationVector,
                                           pr.multiply(prTgivenW, featureVector));
+        tCounter++;
+        // print each trajectory with probablities here
+        printNestedVector(t);
+        cout << "Pr(T) = " << prT << endl;
+        cout << endl;
         return;
     }
     vector<Node> children = returnChildren(data, pr, node);
@@ -302,6 +305,7 @@ void RIRL::eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node no
 
         Node child = children.at(i);
         vector<double> tempFeatureVector = featureVector;
+        vector<vector<int>> tempT = t;
 
         //updating common parameters before recursive call.
         int newLevel = level + 1;
@@ -312,7 +316,11 @@ void RIRL::eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node no
         double newPrWgivenT = prWgivenT * data.getObsModel().density_value(s,0.5);
         double newNormalizerForObsModel = normalizerForObsModel + newPrWgivenT;
         featureVector = pr.add(featureVector,pr.getFeatures(child.state,child.action));
-
+        // update Trajectory
+        vector<int> stateActionTuple;
+        stateActionTuple.push_back(child.state);
+        stateActionTuple.push_back(child.action);
+        t.push_back(stateActionTuple);
         //check if in the initial state so the updating parameters will be different
         if(child.isInitalState){// updating parameters before recursive call. if we are in initial state.
             newPrT = prT * data.getStateInitialPriority(child.state);
@@ -326,10 +334,12 @@ void RIRL::eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node no
         }
         // recursive call
         eStepRecursiveUtil(data,pr,w,child,newLevel,newPrT,newPrWgivenT,newNormalizerForObsModel,
-                           normalizerVectorForPrTgivenW,featureVector,featureExpectationVector);
+                           normalizerVectorForPrTgivenW,featureVector,featureExpectationVector,tCounter,t);
         // restore feature vector for going back to the previous level
         // normalizerVectorForPrTgivenW and featureExpectationVector must keep acumulate for all Ts
+        // restore t
         featureVector = tempFeatureVector;
+        t = tempT;
     }
 }
 
@@ -354,15 +364,12 @@ void RIRL::initializePolicy(Data & data, Process &pr){
 
 void RIRL::printNestedVector(vector<vector<int>> v){
     int counter = 0;
-    ofstream myfile;
-    myfile.open ("/home/shervin/Desktop/result.txt", ios::app);
     for(int i = 0 ; i < int(v.size()) ; i++){
-        myfile << "<" << v.at(i).at(0) << " , " << v.at(i).at(1) << "> , ";
         cout << "<" << v.at(i).at(0) << " , " << v.at(i).at(1) << "> , ";
         counter ++;
     }
-    cout << counter << endl;
-    myfile << counter << endl;
+    cout << "Length of T == " << counter << endl;
+
 }
 
 void RIRL::printVector(vector<double> v){

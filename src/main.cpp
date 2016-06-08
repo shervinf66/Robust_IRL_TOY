@@ -53,7 +53,8 @@ int main()
         weights = rirl.exponentiatedGradient(data,pr,expertFeatureVector,weights,1.0,0.01);
         rirl.printVector(weights);
         counter++;
-        if(counter == 5){
+        cout << "***********************************************************" << endl;
+        if(counter == 50){
             break;
         }
     }while(true);

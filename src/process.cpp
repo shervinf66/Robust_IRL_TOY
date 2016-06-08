@@ -111,7 +111,7 @@ void Process::buildAContinuousTrajectoryAndDiscreteTrajectory(Data &data, bool f
     int currentState;
     int initialAction;
     int action;
-    int initialState = 10;
+    int initialState = 32; // modified for debug change back 32 to 10
 
     if(forTrainingObs == true){
         initialAction = randomPolicy(data);
@@ -166,12 +166,17 @@ void Process::buildAContinuousTrajectoryAndDiscreteTrajectory(Data &data, bool f
         stateActionPair.push_back(action);
         aDiscreteTrajectory.push_back(stateActionPair);
 
-        vector<double> obs = getObsSampleList(data, aContinusTrajectory.at(lastPointIndex), point);
+        vector<double> obs;
+        obs = getObsSampleList(data, aContinusTrajectory.at(lastPointIndex), point);
         ObsSampleList.insert(ObsSampleList.end(), obs.begin(), obs.end());
         lastPointIndex = lastPointIndex + 1;
         aContinusTrajectory.push_back(point);
 
         currentState = nextState;
+        if(done){
+            obs = getObsSampleList(data,point, point);
+            ObsSampleList.insert(ObsSampleList.end(), obs.begin(), obs.end());
+        }
     }
     data.addAContinuousTrajectory(aContinusTrajectory);
     data.addADiscreteTrajectory(aDiscreteTrajectory);
@@ -353,6 +358,7 @@ int Process::randomPolicy(Data &data){
     int randomAction = listOfActions.at(getRandomIntNumber(listOfActions.size()));
     return randomAction;
 }
+// somrthing is wrong here
 double Process::probablityOfNextStateGivenCurrentStateAction(Data &data,int nextState, int currentState, int currentAction){
     double stochasticity = data.getStochasticity();
     int idealNextState = transitionFunction(data,currentState,currentAction);
@@ -372,6 +378,30 @@ double Process::probablityOfNextStateGivenCurrentStateAction(Data &data,int next
         }
     }
     return pr;
+}
+
+int Process::nextState(Data &data,int currentState, int currentAction){
+    int nextState;
+    double stochasticity = 0.0;
+    vector<int> listOfStates = data.getListOfStates();
+    vector<int> listOfActions = data.getListOfActions();
+    double stochasticityIndicator = getRandomDoubleNumber(0,1);
+
+    if(stochasticityIndicator < stochasticity ){
+        int randomAction = listOfActions.at(getRandomIntNumber(listOfActions.size()));
+        while(randomAction == currentAction){
+            randomAction = listOfActions.at(getRandomIntNumber(listOfActions.size()));
+        }
+        nextState = currentState + randomAction;
+    }else{
+        nextState = currentState + currentAction;
+    }
+
+    if((find(listOfStates.begin(), listOfStates.end(), nextState) != listOfStates.end())
+            && !isBlockedlState(nextState)){
+        return nextState;
+    }
+    return currentState;
 }
 
 int Process::transitionFunction(Data &data,int currentState, int currentAction){

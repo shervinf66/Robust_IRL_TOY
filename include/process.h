@@ -49,6 +49,7 @@ public:
     void saveObsModel(Data &data);
     bool areAdj(int state1, int state2);
     vector<double> normalize(vector<double> v);
+    int nextState(Data &data,int currentState, int currentAction);
 };
 
 #endif // PROCESS_H

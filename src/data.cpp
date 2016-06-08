@@ -16,7 +16,7 @@ Data::Data()
 
     for (double i = 0 ; i < listOfStates.size() ; i++){
         int state = listOfStates.at(i);
-        if (state == 10){
+        if (state == 32){ // modified for debug change back 32 to 10
             stateInitialPriorities[state] = 1.0;
         }else{
             stateInitialPriorities[state] = 0.0;
