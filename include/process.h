@@ -45,7 +45,7 @@ public:
     vector<double> add(vector<double> v1, vector<double> v2);
     double l1norm(vector<double> v);
     double l2norm(vector<double> v);
-    DETree loadObsModel(Data &data);
+    void loadObsModel(Data &data);
     void saveObsModel(Data &data);
     bool areAdj(int state1, int state2);
     vector<double> normalize(vector<double> v);

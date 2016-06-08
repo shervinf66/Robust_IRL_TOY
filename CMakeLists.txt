@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(Robust_IRL_TOY)
 
 set(CMAKE_BUILD_TYPE Debug)
-
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)

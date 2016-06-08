@@ -16,8 +16,7 @@ int main()
     Data data = Data();
     Process pr;
     RIRL rirl;
-
-    //    vector<double> y;
+    vector<double> y;
     //    y.push_back(1.0);
     //    y.push_back(0.0);
 
@@ -29,83 +28,37 @@ int main()
     //    w = rirl.exponentiatedGradient(data,pr,y,w_initial,1.0,0.1);
     //    cout << w.at(0) << endl;
     //    cout << w.at(1) << endl;
-    //    pr.generateTrajectories(data, 10, true);
-    pr.generateTrajectories(data, 2, false);
 
-    //    cout << data.getListOfDiscreteTrajectories().at(0).size() << endl;
-    //    cout << data.getListOfContinuousTrajectories().at(0).size() << endl;
-
+    pr.generateTrajectories(data, 1, false);
+    cout << data.getObsList().at(0).size() << endl;
     cout << "Loading ObsModel!" << endl;
-    DETree T = pr.loadObsModel(data);
-    cout << "obsModel loaded!" << endl;
+    pr.loadObsModel(data);
+    cout << "ObsModel loaded!" << endl;
+
+    cout << "Initialization!" << endl;
     //initialize policy
     rirl.initializePolicy(data,pr);
+
+    // initalize weights
+    vector<double> weights(2,1.0);
+    rirl.printVector(weights);
+    cout << "Initialization done!" << endl;
+
     vector<vector<Sample > > obsList = data.getObsList();
-//    cout << obsList.at(0).size() << endl;
-//    obsList.at(0).pop_back();
-    cout << obsList.at(0).size() << endl;
-    // new version:
-    vector<double> expertFeatureVector = rirl.eStepMain(data,pr,obsList);
-
-    rirl.printVector(expertFeatureVector);
-
-    //    old version
-    //    vector<double> expertFeatureVector = rirl.eStep(data, pr, obsList);
-    //    rirl.printVector(expertFeatureVector);
-    //    DETree O = data.getObsModel();
-
-    //    Sample a;
-    //    a.values.push_back(0.45357454523266599);
-    //    a.values.push_back(20.3247517246703);
-    //    a.values.push_back(10);
-    //    a.values.push_back(10);
-    //    a.p = 0.010416666666666666;
-
-    //    double x = T.density_value(a,0.5);
-
-    //    cout << "x: " << x << endl;
-
-    ////    double xx = O.density_value(a,0.5);
-
-    ////    cout << "xx: " << xx << endl;
-
-
-    //    Sample b;
-    //    b.values.push_back(-0.0085455654994017246);
-    //    b.values.push_back(20.15279391134262);
-    //    b.values.push_back(20);
-    //    b.values.push_back(-10);
-    //    b.p = 0.010416666666666666;
-
-    //    double y = T.density_value(b,0.5);
-
-    //    cout << "y: " << y << endl;
-
-    ////    double yy = O.density_value(b,0.5);
-
-    ////    cout << "yy: " << yy << endl;
+    vector<double> expertFeatureVector;
+    int counter = 0;
+    do{
+        expertFeatureVector = rirl.eStep(data,pr,obsList);
+        rirl.printVector(expertFeatureVector);
+        weights = rirl.exponentiatedGradient(data,pr,expertFeatureVector,weights,1.0,0.01);
+        rirl.printVector(weights);
+        counter++;
+        if(counter == 5){
+            break;
+        }
+    }while(true);
 
     cout << "Done!" << endl;
-
-
-    //    rirl.constructAllT(data, pr, 1);
-    //    vector< vector< vector<int>>> x = data.getAllPissibleT();
-
-
-    //    for(int i = 0 ; i < int(x.size()) ; i++){
-    //        rirl.printNestedVector(x.at(i));
-    //    }
-
-    //    vector<double> * low  = new vector<double>();
-    //    vector<double> * high = new vector<double>();
-
-    //    low->push_back(0);
-    //    low->push_back(0);
-
-    //    high->push_back(10);
-    //    high->push_back(10);
-    //    DETree T(flat, low, high);
-
 
     return 0;
 }

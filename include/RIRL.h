@@ -37,7 +37,7 @@ public:
                                   double &normalizerVectorForPrTgivenW, vector<double> &featureVector
                             , vector<double> &featureExpectationVector); // E-step recursive call
 
-    vector<double> eStepMain(Data &data, Process &pr, vector<vector<Sample>> allW); // E-step main function
+    vector<double> eStep(Data &data, Process &pr, vector<vector<Sample>> allW); // E-step main function
 
     void initializePolicy(Data & data, Process &pr);
     void printNestedVector(vector<vector<int>> v); // for debugging

@@ -508,7 +508,7 @@ void Process::trainObs(Data &data){
 
 void Process::generateTrajectories(Data &data, int numberOfTrajectories, bool forTrainingObs){
     for (int i = 0 ; i < numberOfTrajectories ; i++){
-        cout << "Trajectory " << i << " is Done!\n";
+        //        cout << "Trajectory " << i << " is Done!\n";
         buildAContinuousTrajectoryAndDiscreteTrajectory(data, forTrainingObs);
     }
     cout << "Trajectories generated!\n";
@@ -517,7 +517,7 @@ void Process::generateTrajectories(Data &data, int numberOfTrajectories, bool fo
     cout << "bildObsListdone!\n";
     if(forTrainingObs){
         trainObs(data);
-        cout << "Saving obsModel!!\n";
+        cout << "Saving obsModel!\n";
         saveObsModel(data);
         cout << "obsModel saved!\n";
     }
@@ -579,7 +579,7 @@ double Process::l2norm(vector<double> v){
     return sqrt(calcInnerProduct(v,v));
 }
 
-DETree Process::loadObsModel(Data &data){
+void Process::loadObsModel(Data &data){
     vector<Sample> flatObsList;
     string fileAddress = data.getObsModelAddress();
     std::ifstream ifs(fileAddress);
@@ -611,7 +611,6 @@ DETree Process::loadObsModel(Data &data){
     vector<double> * high = data.getHigh();
     DETree observationModel(flatObsList, low, high);
     data.setObsModel(observationModel);
-    return observationModel;
 }
 
 
@@ -636,7 +635,10 @@ void Process::saveObsModel(Data &data){
 
 bool  Process::areAdj(int state1, int state2){
     if(abs(state1 - state2) == 0 || abs(state1 - state2) == 10 || abs(state1 - state2) == 1){
-        return true;
+        if(state1 != 21 && state2 != 21){// can do it using pr
+            return true;
+        }
+        return false;
     }
     return false;
 }

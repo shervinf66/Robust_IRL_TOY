@@ -63,14 +63,14 @@ vector<double> RIRL::calcFeatureExpectationLeft(Data &data, Process &pr, vector<
             int currentState = listOfStates.at(j);
             double sum = 0.0;
             if (pr.isTerminalState(currentState)) {
-                sum += z_a[currentState][0];
+                sum = sum + z_a[currentState][0];
             } else {
                 for (int k = 0 ; k < int(listOfActions.size()) ; k++){ //k ==> acttion
                     int action = listOfActions.at(k);
-                    sum += z_a[currentState][action];
+                    sum = sum + z_a[currentState][action];
                 }
             }
-            z_s[i] = sum;
+            z_s[currentState] = sum + 1;
         }
     }
     // local action probability computation
@@ -147,7 +147,7 @@ vector<double> RIRL::calcFeatureExpectationLeft(Data &data, Process &pr, vector<
     return featureExpectation;
 }
 
-vector<double> RIRL::exponentiatedGradient(Data &data, Process &pr, vector<double> y,
+vector<double> RIRL::exponentiatedGradient(Data &data, Process &pr, vector<double> y,//y is coming from e-step. it is the feature expectation
                                            vector<double> w, double c, double err){
     double y_norm = pr.l1norm(y);
     if (y_norm != 0){
@@ -248,14 +248,14 @@ vector<Node> RIRL::returnChildren(Data &data, Process &pr, Node node){
     return result;
 }
 
-vector<double> RIRL::eStepMain(Data &data, Process &pr, vector<vector<Sample>> allW){ // E-step main function
+vector<double> RIRL::eStep(Data &data, Process &pr, vector<vector<Sample>> allW){ // E-step main function
     // to retain the ultimate feature count
     vector<double> f(2,0.0);
 
     // go through all observation sequence
     for(int i = 0 ; i < int(allW.size()) ; i++){
         vector<Sample> w = allW.at(i);
-        double normalizerVectorForPrTgivenW = 0;
+        double normalizerVectorForPrTgivenW = 0.0;
         vector<double> featureExpectation(2,0.0);
         vector<double> featureVector(2,0.0);
         Node node;
@@ -276,19 +276,30 @@ void RIRL::eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node no
                               ,double prT, double prWgivenT,double normalizerForObsModel,
                               double &normalizerVectorForPrTgivenW, vector<double> &featureVector,
                               vector<double> &featureExpectationVector){ // E-step recursive
+    //    cout << level << endl;
     if(level == int(w.size())){
         double prWgivenTNormalized = prWgivenT / normalizerForObsModel;
         double prTgivenW = prWgivenTNormalized * prT;
         // accumulate normalizer after compilation of each T
         normalizerVectorForPrTgivenW = normalizerVectorForPrTgivenW + prTgivenW;
         //later i need to normalize normalize this featureExpectationVector in the eStep function
+        //        printVector(featureVector); // for ken
+        if(featureVector.at(0)> 1 || featureVector.at(1)> 1){
+            if(node.state == 33){
+                cout<< "33!" << endl;
+                printVector(featureVector);
+            }else if(node.state == 23){
+                cout<< "23!" << endl;
+                printVector(featureVector);
+            }
+        }
         featureExpectationVector = pr.add(featureExpectationVector,
                                           pr.multiply(prTgivenW, featureVector));
         return;
     }
     vector<Node> children = returnChildren(data, pr, node);
     for(int i = 0 ; i < int(children.size()) ; i++){
-        //check if in the initial state so the updating parameters will be different
+
         Node child = children.at(i);
         vector<double> tempFeatureVector = featureVector;
 
@@ -299,16 +310,19 @@ void RIRL::eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node no
         s.values.push_back(child.state);
         s.values.push_back(child.action);
         double newPrWgivenT = prWgivenT * data.getObsModel().density_value(s,0.5);
-        double newNormalizerForObsModel = normalizerForObsModel + data.getObsModel().density_value(s,0.5);;
-        featureVector = pr.getFeatures(child.state,child.action);
+        double newNormalizerForObsModel = normalizerForObsModel + newPrWgivenT;
+        featureVector = pr.add(featureVector,pr.getFeatures(child.state,child.action));
 
+        //check if in the initial state so the updating parameters will be different
         if(child.isInitalState){// updating parameters before recursive call. if we are in initial state.
             newPrT = prT * data.getStateInitialPriority(child.state);
 
         }else{ // updating parameters before recursive call. if we are not in initial state.
-            newPrT = prT * pr.probablityOfNextStateGivenCurrentStateAction(data,child.state,
-                                                                           child.previousState,child.previousAction) *
-                    data.getPolicy()[child.previousState][child.previousAction];
+            newPrT = prT *
+                    pr.probablityOfNextStateGivenCurrentStateAction(
+                        data,child.state,
+                        child.previousState,child.previousAction) *
+                    data.getPolicy()[child.state][child.action];
         }
         // recursive call
         eStepRecursiveUtil(data,pr,w,child,newLevel,newPrT,newPrWgivenT,newNormalizerForObsModel,
@@ -353,7 +367,15 @@ void RIRL::printNestedVector(vector<vector<int>> v){
 
 void RIRL::printVector(vector<double> v){
     for(int i = 0 ; i < int(v.size()) ; i++){
-        cout << v.at(i) << " , " << endl;
+        if(i == 0){
+            cout << "< "<< v.at(i) << " , ";
+
+        }else if(i > int(v.size())-1){
+            cout << v.at(i) << " , ";
+
+        }else{
+            cout << v.at(i) << " >" << endl;
+        }
     }
 }
 
