@@ -235,7 +235,7 @@ vector<Node> RIRL::returnChildren(Data &data, Process &pr, Node node){
                 child.isFakeNode = false;
                 child.isInitalState = false;
                 // should if the next state is a terminal state just add action do nothing
-                int nextState = pr.nextState(data,node.state,node.action);
+                int nextState = pr.returnNextState(data,node.state,node.action);
                 child.state = nextState;
                 if (pr.isTerminalState(nextState)){
                     child.action = 0;

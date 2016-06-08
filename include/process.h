@@ -38,7 +38,7 @@ public:
     bool isBlockedlState(int state);
     vector<double> getFeatures(int state, int action);
     double calcInnerProduct(vector<double> v1, vector<double> v2);
-    double probablityOfNextStateGivenCurrentStateAction(Data &data,int nextState,int currentState,int currentAction);
+    double probablityOfNextStateGivenCurrentStateAction(Data &data,int returnNextState,int currentState,int currentAction);
     void generateTrajectories(Data &data, int numberOfTrajectories, bool forTrainingObs);
     vector<double> multiply(double scalar, vector<double> v);
     vector<double> divide(double scalar, vector<double> v);
@@ -49,7 +49,7 @@ public:
     void saveObsModel(Data &data);
     bool areAdj(int state1, int state2);
     vector<double> normalize(vector<double> v);
-    int nextState(Data &data,int currentState, int currentAction);
+    int returnNextState(Data &data,int currentState, int currentAction);
 };
 
 #endif // PROCESS_H

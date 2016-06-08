@@ -361,26 +361,28 @@ int Process::randomPolicy(Data &data){
 // somrthing is wrong here
 double Process::probablityOfNextStateGivenCurrentStateAction(Data &data,int nextState, int currentState, int currentAction){
     double stochasticity = data.getStochasticity();
-    int idealNextState = transitionFunction(data,currentState,currentAction);
-    double pr;
+    int idealNextState = returnNextState(data,currentState,currentAction);
+    double pr = 0.0;
     if(isBlockedlState(nextState)){
         pr = 0.0;
     }else if (nextState == idealNextState){
         pr = 1.0 - stochasticity;
-    }else if(abs(nextState - currentState) == 10 || abs(nextState - currentState) == 1){
+    }else{ /*if(abs(nextState - currentState) == 10 || abs(nextState - currentState) == 1
+             || abs(nextState - currentState) == 0){
+
         if(currentState == 10 || currentState == 11 || currentState == 13
                 || currentState == 20 || currentState == 33 || currentState == 30 || currentState == 31) {
-            pr = stochasticity / 2.0;
-        } else if(currentState == 12 || currentState == 23 || currentState == 32){
+
             pr = stochasticity / 3.0;
-        }else{
+        } else { // if(currentState == 12 || currentState == 22 || currentState == 23 || currentState == 32)
             pr = stochasticity / 4.0;
-        }
+        }*/
+return 0.0;
     }
     return pr;
 }
 
-int Process::nextState(Data &data,int currentState, int currentAction){
+int Process::returnNextState(Data &data,int currentState, int currentAction){
     int nextState;
     double stochasticity = 0.0;
     vector<int> listOfStates = data.getListOfStates();
