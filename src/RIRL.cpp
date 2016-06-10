@@ -27,62 +27,66 @@ vector<double> RIRL::calcFeatureExpectationLeft(Data &data, Process &pr, vector<
     for (int i = 0 ; i < int(listOfStates.size()) ; i++){
         if (pr.isTerminalState(listOfStates.at(i))){
             z_s[listOfStates.at(i)] = 1.0;
-        }else{
+        }else if(!(pr.isBlockedlState(listOfStates.at(i)))){
             z_s[listOfStates.at(i)] = 0.0;
         }
     }
 
+    // debuge me
     int sampleLength = data.getSampleLength();
-    for (int i = 0 ; i < sampleLength ; i++){
+    for (int N = 0 ; N < sampleLength ; N++){
         // calculating z_ai,j
-        for (int j = 0 ; j < int(listOfStates.size()) ; j++){ //j ==> state
-            int currentState = listOfStates.at(j);
-            if (pr.isTerminalState(currentState)){
-                vector<double> features = pr.getFeatures(currentState,0); //since we are in terminal state the action is 0 = no op.
+        for (int i = 0 ; i < int(listOfStates.size()) ; i++){ //j ==> state
+            int currentState_i = listOfStates.at(i);
+            if (pr.isTerminalState(currentState_i)){
+                vector<double> features = pr.getFeatures(currentState_i,0); //since we are in terminal state the action is 0 = no op.
                 double reward = exp(pr.calcInnerProduct(features,weights));
-                z_a[currentState][0] = reward * z_s[currentState];
-            }else {
-                for (int k = 0 ; k < int(listOfActions.size()) ; k++){ //k ==> acttion
-                    int action = listOfActions.at(k);
+                z_a[currentState_i][0] = reward * z_s[currentState_i];
+            }else if(!(pr.isBlockedlState(currentState_i))){
+                for (int j = 0 ; j < int(listOfActions.size()) ; j++){ //k ==> acttion
+                    int action_j = listOfActions.at(j);
                     double sum = 0.0;
-                    for (int l = 0 ; l < int(listOfStates.size()) ; l++){ //l ==> next state
-                        int nextState = listOfStates.at(l);
-                        vector<double> features = pr.getFeatures(currentState,action); // feature of the current state and action
+                    for (int k = 0 ; k < int(listOfStates.size()) ; k++){ //l ==> next state
+                        int nextState_k = listOfStates.at(k);
+                        vector<double> features = pr.getFeatures(currentState_i,action_j); // feature of the current state and action
                         double reward = exp(pr.calcInnerProduct(features,weights));
                         double probabilityOfTheNextState; // here we have to calc Pr(s_k|s_i,a_i,j)
                         probabilityOfTheNextState =
-                                pr.probablityOfNextStateGivenCurrentStateAction(data,nextState, currentState, action);
-                        sum += probabilityOfTheNextState * reward * z_s[nextState];
+                                pr.probablityOfNextStateGivenCurrentStateAction(data,nextState_k, currentState_i, action_j);
+                        sum = sum + probabilityOfTheNextState * reward * z_s[nextState_k];
                     }
-                    z_a[currentState][action] = sum;
+                    z_a[currentState_i][action_j] = sum;
+//                    cout << "sum = " << sum << " , " << "currentState = " << currentState <<
+//                            " , " << "action = " << action << endl;
+//                    cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
                 }
             }
         }
         // calculating z_si
-        for (int j = 0 ; j < int(listOfStates.size()) ; j++){ //j ==> state foreach(i; model.S()) {
-            int currentState = listOfStates.at(j);
+        for (int i = 0 ; i < int(listOfStates.size()) ; i++){ //j ==> state foreach(i; model.S()) {
+            int currentState_i = listOfStates.at(i);
             double sum = 0.0;
-            if (pr.isTerminalState(currentState)) {
-                sum = sum + z_a[currentState][0] + 1;
-            } else {
-                for (int k = 0 ; k < int(listOfActions.size()) ; k++){ //k ==> acttion
-                    int action = listOfActions.at(k);
-                    sum = sum + z_a[currentState][action];
+            if (pr.isTerminalState(currentState_i)) {
+                sum = sum + z_a[currentState_i][0];
+            }else if(!(pr.isBlockedlState(currentState_i))){
+                for (int j = 0 ; j < int(listOfActions.size()) ; j++){ //k ==> acttion
+                    int action = listOfActions.at(j);
+                    sum = sum + z_a[currentState_i][action];
                 }
             }
-            z_s[currentState] = sum;
+            z_s[currentState_i] = sum;
         }
     }
     // local action probability computation
     map<int,map<int,double>> policy; //[State][Action]
     for (int i = 0 ; i < int(listOfStates.size()) ; i++){ //i ==> state
-        int state = listOfStates.at(i);
-        if (pr.isTerminalState(state)) {
-            policy[state][0] = z_a[state][0] / z_s[state];
-        } else {
+        int state_i = listOfStates.at(i);
+        if (pr.isTerminalState(state_i)) {
+            policy[state_i][0] = z_a[state_i][0] / z_s[state_i];
+        } else if(!(pr.isBlockedlState(state_i))) {
             for (int j = 0 ; j < int(listOfActions.size()) ; j++){ //j ==> acttion
-                int action = listOfActions.at(j);
-                policy[state][action] = z_a[state][action] / z_s[state];
+                int action_j = listOfActions.at(j);
+                policy[state_i][action_j] = z_a[state_i][action_j] / z_s[state_i];
             }
         }
     }
@@ -295,9 +299,9 @@ void RIRL::eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node no
                                           pr.multiply(prTgivenW, featureVector));
         tCounter++;
         // print each trajectory with probablities here
-        printNestedVector(t);
-        cout << "Pr(T) = " << prT << endl;
-        cout << endl;
+//        printNestedVector(t);
+//        cout << "Pr(T) = " << prT << endl;
+//        cout << endl;
         return;
     }
     vector<Node> children = returnChildren(data, pr, node);
@@ -368,7 +372,7 @@ void RIRL::printNestedVector(vector<vector<int>> v){
         cout << "<" << v.at(i).at(0) << " , " << v.at(i).at(1) << "> , ";
         counter ++;
     }
-    cout << "Length of T == " << counter << endl;
+    cout << "The length is == " << counter << endl;
 
 }
 

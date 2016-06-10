@@ -16,19 +16,38 @@ int main()
     Data data = Data();
     Process pr;
     RIRL rirl;
-    vector<double> y;
-    //    y.push_back(1.0);
-    //    y.push_back(0.0);
 
-    //    vector<double> w_initial;
-    //    w_initial.push_back(1.0);
-    //    w_initial.push_back(1.0);
+    //    vector<double> y;
+    //    y.push_back(1);
+    //    y.push_back(0);
 
     //    vector<double> w;
-    //    w = rirl.exponentiatedGradient(data,pr,y,w_initial,1.0,0.1);
+    //    w.push_back(1.0);
+    //    w.push_back(1.0);
+
+
+    //    w = rirl.exponentiatedGradient(data,pr,y,w,1.0,0.1);
     //    cout << w.at(0) << endl;
     //    cout << w.at(1) << endl;
-
+    //    map<int,map<int,double>> p1 = data.getPolicy();
+    //    cout << "--------------------------------------------" << endl;
+    //    y.at(0) = (0.8);
+    //    y.at(1) = (0.7);
+    //    w = rirl.exponentiatedGradient(data,pr,y,w,1.0,0.1);
+    //    cout << w.at(0) << endl;
+    //    cout << w.at(1) << endl;
+    //    map<int,map<int,double>> p2 = data.getPolicy();
+    //    cout << "--------------------------------------------" << endl;
+    //    y.at(0) = 0.9;
+    //    y.at(1) = 0.5;
+    //    w = rirl.exponentiatedGradient(data,pr,y,w,1.0,0.1);
+    //    cout << w.at(0) << endl;
+    //    cout << w.at(1) << endl;
+    //    map<int,map<int,double>> p3 = data.getPolicy();
+    //    cout << "--------------------------------------------" << endl;
+    //    if(p3 == p1){
+    //        cout << "fuck!" << endl;
+    //    }
     pr.generateTrajectories(data, 1, false);
     cout << data.getObsList().at(0).size() << endl;
     cout << "Loading ObsModel!" << endl;

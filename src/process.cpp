@@ -367,7 +367,7 @@ double Process::probablityOfNextStateGivenCurrentStateAction(Data &data,int next
         pr = 0.0;
     }else if (nextState == idealNextState){
         pr = 1.0 - stochasticity;
-    }else{ /*if(abs(nextState - currentState) == 10 || abs(nextState - currentState) == 1
+    }else if(abs(nextState - currentState) == 10 || abs(nextState - currentState) == 1
              || abs(nextState - currentState) == 0){
 
         if(currentState == 10 || currentState == 11 || currentState == 13
@@ -376,8 +376,8 @@ double Process::probablityOfNextStateGivenCurrentStateAction(Data &data,int next
             pr = stochasticity / 3.0;
         } else { // if(currentState == 12 || currentState == 22 || currentState == 23 || currentState == 32)
             pr = stochasticity / 4.0;
-        }*/
-return 0.0;
+        }
+
     }
     return pr;
 }
@@ -572,7 +572,19 @@ vector<double> Process::getFeatures(int state, int action){
 }
 
 double Process::calcInnerProduct(vector<double> v1, vector<double> v2){
-    return inner_product(v1.begin(), v1.end(), v2.begin(), 0);
+
+    //    double result = inner_product(v1.begin(), v1.end(), v2.begin(), 0);
+
+    //    return result;
+    double result = 0.0;
+    if(int(v1.size()) != int(v2.size())){
+        cout << "Something is wrong in Process::calcInnerProduct" << endl;
+        return 0.0;
+    }
+    for (int i = 0 ; i < int(v1.size()) ; i++){
+        result = result + v1.at(i) * v2.at(i);
+    }
+    return result;
 }
 
 vector<double> Process::multiply(double scalar, vector<double> v){
