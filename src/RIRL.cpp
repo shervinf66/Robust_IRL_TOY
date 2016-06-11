@@ -41,7 +41,7 @@ vector<double> RIRL::calcFeatureExpectationLeft(Data &data, Process &pr, vector<
             if (pr.isTerminalState(currentState_i)){
                 vector<double> features = pr.getFeatures(currentState_i,0); //since we are in terminal state the action is 0 = no op.
                 double reward = exp(pr.calcInnerProduct(features,weights));
-                z_a[currentState_i][0] = reward * z_s[currentState_i];
+                z_a[currentState_i][0] = reward * z_s[currentState_i] * listOfActions.size(); // maxent wrong
             }else if(!(pr.isBlockedlState(currentState_i))){
                 for (int j = 0 ; j < int(listOfActions.size()) ; j++){ //k ==> acttion
                     int action_j = listOfActions.at(j);
@@ -67,7 +67,7 @@ vector<double> RIRL::calcFeatureExpectationLeft(Data &data, Process &pr, vector<
             int currentState_i = listOfStates.at(i);
             double sum = 0.0;
             if (pr.isTerminalState(currentState_i)) {
-                sum = sum + z_a[currentState_i][0];
+                sum = sum + z_a[currentState_i][0] ;
             }else if(!(pr.isBlockedlState(currentState_i))){
                 for (int j = 0 ; j < int(listOfActions.size()) ; j++){ //k ==> acttion
                     int action = listOfActions.at(j);
@@ -215,7 +215,7 @@ vector<Node> RIRL::returnChildren(Data &data, Process &pr, Node node){
 
     if(node.isFakeNode){
         // generate a list of initial states
-        for(int i = 10 ; i < 11 ; i++){//just consider 10 for initial state // modified for debug change back to for(int i = 0 ; i < 1 ; i++)
+        for(int i = 0 ; i < 1 ; i++){//just consider 10 for initial state // modified for debug change back to for(int i = 0 ; i < 1 ; i++)
             for(int j = 0 ; j < int(listOfActions.size()) ; j++){
                 Node child;
                 child.isFakeNode = false;

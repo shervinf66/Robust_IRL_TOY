@@ -111,7 +111,7 @@ void Process::buildAContinuousTrajectoryAndDiscreteTrajectory(Data &data, bool f
     int currentState;
     int initialAction;
     int action;
-    int initialState = 32; // modified for debug change back 32 to 10
+    int initialState = 10; // modified for debug change back 32 to 10
 
     if(forTrainingObs == true){
         initialAction = randomPolicy(data);

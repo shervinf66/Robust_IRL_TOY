@@ -17,39 +17,39 @@ int main()
     Process pr;
     RIRL rirl;
 
-    //    vector<double> y;
-    //    y.push_back(1);
-    //    y.push_back(0);
+    //        vector<double> y;
+    //        y.push_back(0);
+    //        y.push_back(1);
 
-    //    vector<double> w;
-    //    w.push_back(1.0);
-    //    w.push_back(1.0);
+    //        vector<double> w;
+    //        w.push_back(1.0);
+    //        w.push_back(1.0);
 
 
-    //    w = rirl.exponentiatedGradient(data,pr,y,w,1.0,0.1);
-    //    cout << w.at(0) << endl;
-    //    cout << w.at(1) << endl;
-    //    map<int,map<int,double>> p1 = data.getPolicy();
-    //    cout << "--------------------------------------------" << endl;
-    //    y.at(0) = (0.8);
-    //    y.at(1) = (0.7);
-    //    w = rirl.exponentiatedGradient(data,pr,y,w,1.0,0.1);
-    //    cout << w.at(0) << endl;
-    //    cout << w.at(1) << endl;
-    //    map<int,map<int,double>> p2 = data.getPolicy();
-    //    cout << "--------------------------------------------" << endl;
-    //    y.at(0) = 0.9;
-    //    y.at(1) = 0.5;
-    //    w = rirl.exponentiatedGradient(data,pr,y,w,1.0,0.1);
-    //    cout << w.at(0) << endl;
-    //    cout << w.at(1) << endl;
-    //    map<int,map<int,double>> p3 = data.getPolicy();
-    //    cout << "--------------------------------------------" << endl;
-    //    if(p3 == p1){
-    //        cout << "fuck!" << endl;
-    //    }
-    pr.generateTrajectories(data, 1, false);
-    cout << data.getObsList().at(0).size() << endl;
+    //        w = rirl.exponentiatedGradient(data,pr,y,w,0.33,0.1);
+    //        cout << w.at(0) << endl;
+    //        cout << w.at(1) << endl;
+    //        cout << "--------------------------------------------" << endl;
+    //        y.at(0) = (0.8);
+    //        y.at(1) = (0.5);
+    //        w = rirl.exponentiatedGradient(data,pr,y,w,1,0.1);
+    //        cout << w.at(0) << endl;
+    //        cout << w.at(1) << endl;
+    //        cout << "--------------------------------------------" << endl;
+    //        y.at(0) = 2;
+    //        y.at(1) = 2;
+    //        w = rirl.exponentiatedGradient(data,pr,y,w,0.33,0.1);
+    //        cout << w.at(0) << endl;
+    //        cout << w.at(1) << endl;
+    //        cout << "--------------------------------------------" << endl;
+
+    int nT = 1;
+    pr.generateTrajectories(data, nT, false);
+    for(int i = 0 ; i < nT ; i++){
+        rirl.printNestedVector(data.getDiscreteTrajectories().at(i));
+    }
+
+
     cout << "Loading ObsModel!" << endl;
     pr.loadObsModel(data);
     cout << "ObsModel loaded!" << endl;
@@ -59,7 +59,9 @@ int main()
     rirl.initializePolicy(data,pr);
 
     // initalize weights
-    vector<double> weights(2,1.0);
+    vector<double> weights;
+    weights.push_back(1);
+    weights.push_back(2);
     rirl.printVector(weights);
     cout << "Initialization done!" << endl;
 
@@ -67,15 +69,16 @@ int main()
     vector<double> expertFeatureVector;
     int counter = 0;
     do{
+        cout << "Iteration: " << counter << endl;
         expertFeatureVector = rirl.eStep(data,pr,obsList);
         rirl.printVector(expertFeatureVector);
-        weights = rirl.exponentiatedGradient(data,pr,expertFeatureVector,weights,1.0,0.01);
+        weights = rirl.exponentiatedGradient(data,pr,expertFeatureVector,weights,1.0,0.000001);
         rirl.printVector(weights);
         counter++;
         cout << "***********************************************************" << endl;
-        if(counter == 50){
-            break;
-        }
+        //        if(counter == 50){
+        //            break;
+        //        }
     }while(true);
 
     cout << "Done!" << endl;

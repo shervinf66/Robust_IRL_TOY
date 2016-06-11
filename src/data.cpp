@@ -3,7 +3,7 @@
 Data::Data()
 {
     listOfStates = {10,11,12,13,20,21,22,23,30,31,32,33};
-    listOfActions = {-10,-1,0,1,10};
+    listOfActions = {-10,-1,0,1,10}; //
     low->push_back(-1000.0);
     low->push_back(-1000.0);
 
@@ -16,7 +16,7 @@ Data::Data()
 
     for (double i = 0 ; i < listOfStates.size() ; i++){
         int state = listOfStates.at(i);
-        if (state == 32){ // modified for debug change back 32 to 10
+        if (state == 10){ // modified for debug change back 32 to 10
             stateInitialPriorities[state] = 1.0;
         }else{
             stateInitialPriorities[state] = 0.0;
