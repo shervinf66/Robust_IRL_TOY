@@ -46,6 +46,7 @@ public:
     void initializePolicy(Data & data, Process &pr, vector<double> weights);
     void printNestedVector(vector<vector<int>> v); // for debugging
     void printVector(vector<double> v); // for debugging
+    double clalObsPrUsingClusteringObsModel(Data & data, Process &pr, Sample s);
 };
 
 #endif // RIRL_H

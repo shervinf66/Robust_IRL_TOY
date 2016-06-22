@@ -27,7 +27,7 @@ private:
     static const int _numberOfFeatures = ((_numberOfRawStates + 1) / 2) + 1 + 1; //the last one is for the missing features
                                                                                  // and it will be located at one before last in the feature vector
     int sample_length;// = 1000; // lenght of T
-    static constexpr double _stochasticity = 0.0;
+    static constexpr double _stochasticity = 0.05;
     static constexpr double _p = 1000000.0; // low numbers very noisy 50000.0;
     static constexpr double _sigma = 1;
     static constexpr double _gamma = 0.99;
@@ -55,6 +55,7 @@ private:
     vector<vector<double> > obsSampleList;
     vector<Sample> flatObsList;
     vector<Sample> deterministicObsModel;
+    vector<Sample> clusteringObsModel;
     // dont need this any more just use combinae all observation and then use flatobslist
     vector<vector<Sample > > obsList; // omega
     vector< vector<vector<double> > > continuousTrajectories;
@@ -77,6 +78,8 @@ public:
     vector<Sample> getFlatObsList(){return flatObsList;}
     vector<Sample> getDeterministicObsModel(){return deterministicObsModel;}
     void setDeterministicObsModel(vector<Sample> model){deterministicObsModel = model;}
+    vector<Sample> getClusteringObsModel(){return clusteringObsModel;}
+    void setClusteringObsModel(vector<Sample> model){clusteringObsModel = model;}
     vector<double> getTimeChunk(){return timeChunk;}
     vector<double> getExpertWeights(){return expertWeights;} //new
     vector<double> *getLow(){return low;}

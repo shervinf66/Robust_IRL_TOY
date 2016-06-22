@@ -56,7 +56,9 @@ public:
     void printPolicy(map<vector<int>,map<int,double>> policy);
     vector<double> getFeatureVectorOfT(Data &data,vector<vector<int>> t);
     void saveDeterministicObsModel(Data &data);
-    void loaddeterministicObsModel(Data &data);
+    void loadDeterministicObsModel(Data &data);
+    void saveClusteringObsModel(Data &data, int dataPerStateActionPair);
+    void loadClusteringObsModel(Data &data);
 };
 
 #endif // PROCESS_H

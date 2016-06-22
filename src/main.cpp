@@ -17,65 +17,24 @@ int main()
     Process pr;
     RIRL rirl;
 
-    vector<double> y;
-    //    y.push_back(20);
-    //    y.push_back(0);
-    //    y.push_back(0);
-    //    y.push_back(0);
-    //    y.push_back(60);
-    //    y.push_back(0);
-    //    y.push_back(0);
-    //    y.push_back(0);
-    //    y.push_back(0);
-    //    y.push_back(0);
-    //    y.push_back(1);
-
-    //    vector<double> w;
-    //    for(int i = 0 ; i < data.getNumberOfFeatures() ; i++){
-    //        double f = (double)rand() / RAND_MAX;
-    //        f = -1.0 + f * (1.0 + 1.0);
-    //        w.push_back(f);
-    //    }
-
-    //    y ={3.91108 , 0.359476 , 1.53784 , 0 , 4.59918};
-    //    //    w = rirl.exponentiatedGradient(data,pr,y,w,1.0,0.01);
-    //    w = rirl.gradientDescent(data,pr,y,w,1,1);
-    //    rirl.printVector(w);
-    //    pr.printPolicy(data.getLearnerPolicy());
-    //    cout << "--------------------------------------------" << endl;
-    //    y.at(0) = (0.8);
-    //    y.at(1) = (0.5);
-    //    w = rirl.exponentiatedGradient(data,pr,y,w,1,0.1);
-    //    cout << w.at(0) << endl;
-    //    cout << w.at(1) << endl;
-    //    cout << "--------------------------------------------" << endl;
-    //    y.at(0) = 2;
-    //    y.at(1) = 2;
-    //    w = rirl.exponentiatedGradient(data,pr,y,w,0.33,0.1);
-    //    cout << w.at(0) << endl;
-    //    cout << w.at(1) << endl;
-    //    cout << "--------------------------------------------" << endl;
-
     // saving the deterministic obs model there is bug dont run it with
     // rirl at the same time save model once and then run the program
-    //    pr.saveDeterministicObsModel(data);
+    //        pr.saveDeterministicObsModel(data);
+
+    // new approach (clustering) for obsModel
+    pr.saveClusteringObsModel(data, 5000);
+
+
     int lt = 10;
 
     // i may need to seprate the sample size form trajectory lenght
     pr.generateTrajectories(data, lt, false);
-    //    for(int i = 0 ; i < data.getNumberOfSamples() ; i++){
-    //        rirl.printNestedVector(data.getDiscreteTrajectories().at(i));
-    //    }
-    //    pr.printPolicy(data.getExpertPolicy());
-    //    vector<vector<int>> expertT = {{0,0,1},{1,0,1},{2,0,1},{3,0,1},{4,0,0},{4,1,1},{3,1,1},{2,1,1},{1,1,1},{0,1,0},{0,0,1},{1,0,1},{2,0,1},{3,0,1},{4,0,0},{4,1,1},{3,1,1},{2,1,1},{1,1,1},{0,1,0}};
 
-    //    vector<double> fv = pr.getFeatureVectorOfT(data,expertT);
-    //    rirl.printVector(fv);
     cout << "Loading ObsModel!" << endl;
-    // I will not use dtree I will simply remove noise and then use a deteministic obs model
-    pr.loadObsModel(data);
-    //    pr.loaddeterministicObsModel(data);
-
+    //    pr.loadObsModel(data);
+    //    pr.loadDeterministicObsModel(data);
+    // load the clustering obsModel
+    pr.loadClusteringObsModel(data);
     cout << "ObsModel loaded!" << endl;
 
     cout << "Initialization!" << endl;
@@ -90,18 +49,6 @@ int main()
     //initialize policy
     rirl.initializePolicy(data,pr,weights);
 
-    //    weights.push_back(1);
-    //    weights.push_back(1);
-    //    weights.push_back(1);
-    //    weights.push_back(1);
-    //    weights.push_back(1);
-    //    weights.push_back(1);
-    //    weights.push_back(1);
-    //    weights.push_back(1);
-    //    weights.push_back(1);
-    //    weights.push_back(1);
-    //    weights.push_back(1);
-    //    weights.push_back(1);
     rirl.printVector(weights);
     cout << "Initialization done!" << endl;
     cout << "***********************************************************" << endl;
@@ -133,7 +80,7 @@ int main()
             break;
         }
         PreviousExpertFeatureVector = expertFeatureVector;
-        pr.printPolicy(data.getLearnerPolicy());
+        //        pr.printPolicy(data.getLearnerPolicy());
         cout << "***********************************************************" << endl;
     }while(true);
     pr.printPolicy(data.getLearnerPolicy());

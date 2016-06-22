@@ -236,6 +236,7 @@ void RIRL::eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node no
         if(deterministicObs){
             prWgivenTNormalized = prWgivenT;
         }else{
+            // I am useing clusteringObsModel
             prWgivenTNormalized = prWgivenT; // normalizerForObsModel;
         }
         double prTgivenW = prWgivenTNormalized * prT;
@@ -272,11 +273,11 @@ void RIRL::eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node no
                 vector<double> idealSvalues = dObsModel.at(k).values;
                 if(s.values == idealSvalues){
                     obsPr = 1.0;
-                    //                    cout << "The probability of the observation is 1" << endl;
+                    // cout << "The probability of the observation is 1" << endl;
                 }
             }
         }else{
-            obsPr = obsNormlizer(data, s);
+            obsPr = clalObsPrUsingClusteringObsModel(data, pr, s);
         }
         double newPrWgivenT = prWgivenT * obsPr;
         double newNormalizerForObsModel = normalizerForObsModel + newPrWgivenT;
@@ -312,33 +313,7 @@ void RIRL::eStepRecursiveUtil(Data &data, Process &pr, vector<Sample> w, Node no
 double RIRL::obsNormlizer(Data & data, Sample s){
     double normalizer = 0;
     double samplePr = data.getObsModel().density_value(s,0.5);
-    //    vector<vector<int>> listOfStates = data.getListOfStates();
-    //    vector<int> listOfActions = data.getListOfActions();
-    //    vector<double> v;
 
-    //    for(int i = 0 ; i < int(listOfStates.size()) ; i++){
-    //        vector<int> state = listOfStates.at(i);
-    //        for(int j = 0 ; j < int(listOfActions.size()) ; j++){
-    //            int action = listOfActions.at(j);
-    //            s.values.at(2) = state.at(0);
-    //            s.values.at(3) = state.at(1);
-    //            s.values.at(4) = action;
-    //            double pr = data.getObsModel().density_value(s,0.5);
-    //            normalizer = normalizer + pr;
-    //        }
-    //    }
-    //    for(int i = 0 ; i < int(listOfStates.size()) ; i++){
-    //        vector<int> state = listOfStates.at(i);
-    //        for(int j = 0 ; j < int(listOfActions.size()) ; j++){
-    //            int action = listOfActions.at(j);
-    //            s.values.at(2) = state.at(0);
-    //            s.values.at(3) = state.at(1);
-    //            s.values.at(4) = action;
-    //            v.push_back(data.getObsModel().density_value(s,0.5)/normalizer);
-    //        }
-    //    }
-    //    samplePr = samplePr / normalizer;
-    //    printVector(v);
     vector<Sample> flatObsList = data.getFlatObsList();
     for(int i = 0 ; i < int(flatObsList.size()) ; i++){
         Sample sample;
@@ -362,37 +337,13 @@ double RIRL::obsNormlizer(Data & data, Sample s){
         sample.values.push_back(s.values.at(4));
         v.push_back(data.getObsModel().density_value(sample,0.5)/normalizer);
     }
-     printVector(v);
+    printVector(v);
     samplePr = samplePr / normalizer;
     return samplePr;
 }
 
 void RIRL::initializePolicy(Data & data, Process &pr,vector<double> weights){
-    //    vector<vector<int>> listOfStates = data.getListOfStates();
-    //    vector<int> listOfActions = data.getListOfActions();
-    //    map<vector<int>,map<int,double>> policy; //[State][Action]
-    //    // initialize policy so the Pr(T) would not be zero at begining!
-    //    for (int i = 0 ; i < int(listOfStates.size()) ; i++){ //i ==> state
-    //        vector<int> state = listOfStates.at(i);
-    //        double normlizer = 0.0;
-    //        for (int j = 0 ; j < int(listOfActions.size()) ; j++){ //j ==> acttion
-    //            int action = listOfActions.at(j);
-    //            //            policy[state][action] = 1.0 / 2.0; // uniform 2 action
-    //            // random initialization
-    //            unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    //            default_random_engine generator(seed);
-    //            uniform_real_distribution<double> distribution(0.0,1.0);
-    //            double pr = distribution(generator);
-    //            policy[state][action] = pr;
-    //            normlizer = normlizer + 1;
-    //        }
-    //        //normlizing
-    //        for (int j = 0 ; j < int(listOfActions.size()) ; j++){ //j ==> acttion
-    //            int action = listOfActions.at(j);
-    //            policy[state][action] = policy[state][action] / normlizer;
-    //        }
-    //    }
-    //    data.updateLearnerPolicy(policy);
+
     // I was initiliazing the policy randomly or uniformly before now I will do
     // it based on random weights.
     map<vector<int>,map<int,double>> policy = data.getLearnerPolicy();
@@ -429,20 +380,7 @@ void RIRL::printVector(vector<double> v){
 
 vector<double> RIRL::gradientDescent(Data &data, Process &pr, vector<double> y,//y is coming from e-step. it is the feature expectation
                                      vector<double> w, double c, double err){
-    //    double y_norm = pr.l1norm(y);
-    //    if (y_norm != 0){
-    //        y = pr.divide(y_norm, y);
-    //    }
 
-    //    for (int i = 0 ; i < int(w.size()) ; i++) {
-    //        w.at(i) = abs(w.at(i));
-    //    }
-
-    //    double w_norm = pr.l1norm(w);
-
-    //    if (w_norm != 0){
-    //        w = pr.divide(w_norm, w);
-    //    }
 
     double diff;
     double lastdiff = DBL_MAX;
@@ -451,18 +389,11 @@ vector<double> RIRL::gradientDescent(Data &data, Process &pr, vector<double> y,/
 
         vector<double> y_prime = calcFeatureExpectationLeft(data,pr,w);
 
-        //        double y_prime_norm = pr.l1norm(y_prime);
-        //        if (y_prime_norm != 0)
-        //            y_prime = pr.divide(y_prime_norm, y_prime);
-
         vector<double> next_w;
         for (int i = 0 ; i < int(w.size()) ; i++) {
             next_w.push_back(w.at(i) - c * (y_prime.at(i) - y.at(i))) ;
         }
 
-        //        double norm = pr.l1norm(next_w);
-        //        if (norm != 0)
-        //            next_w = pr.divide(norm, next_w);
 
         vector<double>  test = w;
         //        test[] -= next_w[];
@@ -483,4 +414,56 @@ vector<double> RIRL::gradientDescent(Data &data, Process &pr, vector<double> y,/
     } while (diff > err);
     cout << "error = " << diff << endl;
     return w;
+}
+
+double RIRL::clalObsPrUsingClusteringObsModel(Data & data, Process &pr, Sample s){
+    int index;
+    vector<Sample> flatObsList = data.getFlatObsList();
+    vector<Sample> custeringObsModel = data.getClusteringObsModel();
+
+    vector<int> state;
+    state.push_back(s.values.at(2));
+    state.push_back(s.values.at(3));
+    int action = s.values.at(4);
+
+    // find the corresponding centroid
+    Sample centeroid;
+
+    for(int i = 0 ; i < int(custeringObsModel.size()) ; i++){
+        Sample tempCenteroid = custeringObsModel.at(i);
+        if(state.at(0) == tempCenteroid.values.at(2) &&
+                state.at(1) == tempCenteroid.values.at(3) &&
+                action == tempCenteroid.values.at(4)){
+            centeroid = tempCenteroid;
+            break;
+        }
+    }
+
+    // iterate through all observation and calculate Pr(w|s,a)
+    vector<double> vectorOfPrs;
+    //    double normalizer = 0.0;
+    for(int i = 0 ; i < int(flatObsList.size()) ; i++){
+        Sample obs = flatObsList.at(i);
+        //calculate the distance
+        if(s.values.at(0) == obs.values.at(0) &&
+                s.values.at(1) == obs.values.at(1)){
+            index = i;
+        }
+        double r = sqrt((centeroid.values.at(0) - obs.values.at(0)) * (centeroid.values.at(0) - obs.values.at(0))
+                        +
+                        (centeroid.values.at(1) - obs.values.at(1)) * (centeroid.values.at(1) - obs.values.at(1)));
+        //        normalizer = normalizer + 1.0 / r;
+        // pluse 1 in case of r is zero
+        vectorOfPrs.push_back(1.0 / (r + 1));
+    }
+
+    double vectorOfPrs_norm = pr.l1norm(vectorOfPrs);
+
+    if (vectorOfPrs_norm != 0){
+        vectorOfPrs = pr.divide(vectorOfPrs_norm, vectorOfPrs);
+    }
+
+    //    printVector(vectorOfPrs);
+    double result = vectorOfPrs.at(index);
+    return result;
 }

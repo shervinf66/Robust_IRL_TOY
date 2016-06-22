@@ -717,11 +717,65 @@ void Process::saveDeterministicObsModel(Data &data){
     oa << flatObsList;
 }
 
-void Process::loaddeterministicObsModel(Data &data){
+void Process::loadDeterministicObsModel(Data &data){
     vector<Sample> dObsModel;
     string fileAddress = data.getObsModelAddress();
     std::ifstream ifs(fileAddress);
     boost::archive::text_iarchive ia(ifs);
     ia >> dObsModel;
     data.setDeterministicObsModel(dObsModel);
+}
+
+void Process::saveClusteringObsModel(Data &data, int dataPerStateActionPair){
+    vector<vector<int>> listOfStates = data.getListOfStates();
+    vector<int> listOfActions = data.getListOfActions();
+    int numberOfSamples = data.getNumberOfSamples();
+    vector<Sample> clusteringObsModel;
+    for(int i = 0 ; i < int(listOfStates.size()) ; i++){
+        vector<int> firstState = listOfStates.at(i);
+        for(int j = 0 ; j < int(listOfActions.size()) ; j++){
+            int action = listOfActions.at(j);
+            Sample centroid;
+            centroid.p = 0; //I not using p in here so just assign zero
+            double slopeSum = 0.0;
+            double intercepSum = 0.0;
+
+            for(int k = 0 ; k < dataPerStateActionPair ; k++){
+                vector<int> secondState = returnNextState(data,firstState,action);
+                vector<double> firstPoint = getCenterPointInState(firstState.at(0));
+                vector<double> secondPoint = getCenterPointInState(secondState.at(0));
+                vector<double> obs = getObsSampleList(data,firstPoint, secondPoint);
+                vector<double> time_x = data.getTimeChunk();
+
+                Maths::Regression::Linear linearRegression(numberOfSamples, time_x, obs); //Intensity_y = Obs
+                double slope =linearRegression.getSlope();
+                slopeSum = slopeSum + slope;
+                double intercept =linearRegression.getIntercept();
+                intercepSum = intercepSum + intercept;
+            }
+            centroid.values.push_back(slopeSum / dataPerStateActionPair);
+            centroid.values.push_back(intercepSum / dataPerStateActionPair);
+            centroid.values.push_back(firstState.at(0));
+            centroid.values.push_back(firstState.at(1));
+            centroid.values.push_back(action);
+            clusteringObsModel.push_back(centroid);
+        }
+    }
+
+    ofstream myfile;
+    string fileAddress = data.getObsModelAddress();
+    myfile.open (fileAddress.c_str());
+    std::ofstream ofs(fileAddress.c_str());
+    boost::archive::text_oarchive oa(ofs);
+    // write class instance to archive
+    oa << clusteringObsModel;
+}
+
+void Process::loadClusteringObsModel(Data &data){
+    vector<Sample> cObsModel;
+    string fileAddress = data.getObsModelAddress();
+    std::ifstream ifs(fileAddress);
+    boost::archive::text_iarchive ia(ifs);
+    ia >> cObsModel;
+    data.setClusteringObsModel(cObsModel);
 }
