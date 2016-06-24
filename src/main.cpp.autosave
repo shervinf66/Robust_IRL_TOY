@@ -12,26 +12,26 @@ using namespace std;
 int main()
 {
     srand(1987); // For reproducable results
-
+    
     Data data = Data();
     Process pr;
     RIRL rirl;
-
+    
     // saving the deterministic obs model there is bug dont run it with
     // rirl at the same time save model once and then run the program
     //        pr.saveDeterministicObsModel(data);
-
+    
     // new approach (clustering) for obsModel
-        int clSize = 10;
-        pr.saveClusteringObsModel(data, clSize);
-        cout << "Noise in obsModel: " <<data.getNoise() / ((double)clSize
-                                                           * data.getNumberOfAction()
-                                                           * data.getNumberOfRawStates()
-                                                           * 2.0 // number of orientation
-                                                           * (double)data.getNumberOfSamples()) << endl;
-        data.resetNoise();
+    //        int clSize = 10;
+    //        pr.saveClusteringObsModel(data, clSize);
+    //        cout << "Noise in obsModel: " <<data.getNoise() / ((double)clSize
+    //                                                           * data.getNumberOfAction()
+    //                                                           * data.getNumberOfRawStates()
+    //                                                           * 2.0 // number of orientation
+    //                                                           * (double)data.getNumberOfSamples()) << endl;
+    //        data.resetNoise();
     int lt = 18;
-
+    
     // i may need to seprate the sample size form trajectory lenght
     pr.generateTrajectories(data, lt, false);
     pr.printPolicy(data.getExpertPolicy());
@@ -41,9 +41,9 @@ int main()
     // load the clustering obsModel
     pr.loadClusteringObsModel(data);
     cout << "ObsModel loaded!" << endl;
-
+    
     cout << "Initialization!" << endl;
-
+    
     // initalize weights
     vector<double> weights;
     for(int i = 0 ; i < data.getNumberOfFeatures() ; i++){
@@ -52,11 +52,11 @@ int main()
     }
     //initialize policy
     rirl.initializePolicy(data,pr,weights);
-
+    
     rirl.printVector(weights);
     cout << "Initialization done!" << endl;
     cout << "***********************************************************" << endl;
-
+    
     //    vector<vector<Sample > > obsList = data.getObsList();
     vector<Sample > obsList = data.getFlatObsList();
     vector<double> expertFeatureVector;
@@ -73,8 +73,8 @@ int main()
         cout << "weights: ";
         rirl.printVector(weights);
         counter++;
-
-
+        
+        
         for (int i = 0 ; i < int(PreviousExpertFeatureVector.size()) ; i++){
             PreviousExpertFeatureVector.at(i) = PreviousExpertFeatureVector.at(i) - expertFeatureVector.at(i);
         }
@@ -89,6 +89,6 @@ int main()
     }while(true);
     pr.printPolicy(data.getLearnerPolicy());
     cout << "Done!" << endl;
-
+    
     return 0;
 }

@@ -89,8 +89,8 @@ vector<double> Process::getObsSampleList(Data &data,vector<double> previousPoint
     // parameters of the normal distribution
     double sigma = data.getSigma();
     double mean = data.getMean();
-
     double obs;
+    double accNoise = 0.0;
     for (int i = 0 ; i < (int)continuousSampleList.size() ; i++){
         vector<double> sample = continuousSampleList.at(i);
 
@@ -105,10 +105,11 @@ vector<double> Process::getObsSampleList(Data &data,vector<double> previousPoint
         //        cout << (p / (4 * M_PI * r2)) << " + " << noise << endl;
 
         obs = (p / (4 * M_PI * r2)) + noise;
-
+        accNoise = accNoise + noise * noise;
         obsList.push_back(obs);
     }
 
+    data.updateNoise(accNoise);
     return obsList;
 }
 
@@ -273,12 +274,14 @@ double Process::probablityOfNextStateGivenCurrentStateAction(Data &data,vector<i
     double pr = 0.0;
     if (nextState == idealNextState){
         pr = 1.0 - stochasticity;
-    }else if(areAdj(currentState,nextState) &&
+    }/*else if(areAdj(currentState,nextState) &&
              currentState.at(0) != 0 &&
-             currentState.at(0) != data.getNumberOfRawStates()-1){//if in the middle of hallway
-        pr = stochasticity / 3.0; //confirm it with ken
-    }else if(areAdj(currentState,nextState)){ //if at the end of the hallway
+             currentState.at(0) != data.getNumberOfRawStates()-1){ //if in the middle of hallway
         pr = stochasticity / 2.0; //confirm it with ken
+    }else if(areAdj(currentState,nextState)){ //if at the end of the hallway
+        pr = stochasticity / 1.0; //confirm it with ken
+    }*/else if(nextState == currentState){
+        pr = stochasticity;
     }
 
     return pr;
@@ -308,7 +311,7 @@ vector<int> Process::returnNextState(Data &data,vector<int> currentState, int cu
         nextState.push_back(currentState.at(0));
         nextState.push_back(nextOrientation);
     }else if((currentState.at(1) == 0 && currentAction == 1) /*|| //facing east going forward
-                                                                            (currentState.at(1) == 1 && currentAction == -1)*/){ //facing west going backward
+                                                                                                                                                                      (currentState.at(1) == 1 && currentAction == -1)*/){ //facing west going backward
         int nextPosition = currentState.at(0) + 1;
         //check if the next position (rawState) in the range of possible positions
         if(nextPosition < 0){
@@ -330,16 +333,17 @@ vector<int> Process::returnNextState(Data &data,vector<int> currentState, int cu
 vector<int> Process::transitionFunction(Data &data,vector<int> currentState, int currentAction){
     vector<int> nextState;
     double stochasticity = data.getStochasticity();
-    vector<int> listOfActions = data.getListOfActions();
+    //    vector<int> listOfActions = data.getListOfActions();
     double stochasticityIndicator = getRandomDoubleNumber(0,1);
 
     if(stochasticityIndicator < stochasticity ){
-        int randomAction = listOfActions.at(getRandomIntNumber(listOfActions.size()));
-        while(randomAction == currentAction){
-            randomAction = listOfActions.at(getRandomIntNumber(listOfActions.size()));
-        }
-        //generate next state here
-        nextState = returnNextState(data, currentState, randomAction);
+        //        int randomAction = listOfActions.at(getRandomIntNumber(listOfActions.size()));
+        //        while(randomAction == currentAction){
+        //            randomAction = listOfActions.at(getRandomIntNumber(listOfActions.size()));
+        //        }
+        //        //generate next state here
+        //        nextState = returnNextState(data, currentState, randomAction);
+        nextState = currentState;
     }else{
         //generate next state here
         nextState = returnNextState(data, currentState, currentAction);
@@ -400,6 +404,9 @@ void Process::generateTrajectories(Data &data, int lenghtOfT, bool forTrainingOb
     data.setNormalizerFactorForP(lenghtOfT);
     bulidData(data, lenghtOfT, forTrainingObs);
     cout << "Data generated!" << endl;
+    // claculating noise in relative mean square error fashion
+    double rmsNoise = data.getNoise() / ((double)lenghtOfT * (double)data.getNumberOfSamples());
+    cout << "Average Noise Added to observation = " << rmsNoise << endl;
 
     if(forTrainingObs){
         saveObsModel(data);
@@ -658,11 +665,12 @@ void Process::saveObsModel(Data &data){
 }
 
 //changed
-bool  Process::areAdj(vector<int> state1, vector<int> state2){
-    int rawState1 = state1.at(0);
-    int rawState2 = state2.at(0);
-    if(abs(rawState1 - rawState2) == 0 ||
-            (abs(rawState1 - rawState2) == 1 /*&& state1.at(1) == state2.at(1)*/)){ //|| abs(state1 - state2) == 10
+bool  Process::areAdj(vector<int> currentState, vector<int> nextState){
+    int rawState1 = currentState.at(0);
+    int rawState2 = nextState.at(0);
+    if(rawState1 - rawState2 == 0){
+        return true;
+    }else if(rawState2 - rawState1 == 1 && currentState.at(1) == nextState.at(1)){
         return true;
     }
     return false;
@@ -741,7 +749,11 @@ void Process::saveClusteringObsModel(Data &data, int dataPerStateActionPair){
             double intercepSum = 0.0;
 
             for(int k = 0 ; k < dataPerStateActionPair ; k++){
-                vector<int> secondState = returnNextState(data,firstState,action);
+                // I was using returnNextState(data,firstState,action)
+                // I have to use transitionFunction(data,firstState,action);
+                // to handle stochastic T in observation
+                //                vector<int> secondState = returnNextState(data,firstState,action);
+                vector<int> secondState = transitionFunction(data,firstState,action);
                 vector<double> firstPoint = getCenterPointInState(firstState.at(0));
                 vector<double> secondPoint = getCenterPointInState(secondState.at(0));
                 vector<double> obs = getObsSampleList(data,firstPoint, secondPoint);

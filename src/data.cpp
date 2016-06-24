@@ -2,7 +2,7 @@
 
 Data::Data()
 {
-
+    noise = 0.0;
      for (double i = 0 ; i < _numberOfRawStates; i++){
          listOfRawStates.push_back(i); //changed
          for (double j = 0 ; j < 2; j++){ //{ j = 0 ==> est } , { j = 1 ==> west }

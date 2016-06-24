@@ -48,7 +48,7 @@ public:
     double l2norm(vector<double> v);
     void loadObsModel(Data &data);
     void saveObsModel(Data &data);
-    bool areAdj(vector<int> state1, vector<int> state2);
+    bool areAdj(vector<int> currentState, vector<int> nextState);
     vector<double> normalize(vector<double> v);
     vector<int> returnNextState(Data &data, vector<int> currentState, int currentAction);
     double reward(Data &data, vector<int> state, int action, vector<double> weights);

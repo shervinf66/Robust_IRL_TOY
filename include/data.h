@@ -25,11 +25,11 @@ private:
     static const int _numberOfDisObs = 5;
     //    static const int _intensityChangeThreshold = 0;
     static const int _numberOfFeatures = ((_numberOfRawStates + 1) / 2) + 1 + 1; //the last one is for the missing features
-                                                                                 // and it will be located at one before last in the feature vector
+    // and it will be located at one before last in the feature vector
     int sample_length;// = 1000; // lenght of T
-    static constexpr double _stochasticity = 0.05;
-    static constexpr double _p = 1000000.0; // low numbers very noisy 50000.0;
-    static constexpr double _sigma = 1;
+    static constexpr double _stochasticity = 0.2;
+    static constexpr double _p = 500000.0; // low numbers very noisy 50000.0;
+    static constexpr double _sigma = 20;
     static constexpr double _gamma = 0.99;
     static constexpr double _mean = 0.0;
     //    get ride of them if no problem
@@ -40,6 +40,7 @@ private:
     string obsModelAddress = "/home/shervin/workspace/qt_ws/Toys/Robust_IRL_TOY/obsModel/obsModel.bin";
 
     double normalizerFactorForP = 0.0; // for p in sample. uniform
+    double noise;
 
     vector<int> listOfRawStates; //changed
     vector<vector<int>> listOfStates; //new <rawstate, orienaation> ori==> 0 = east, 1 = west
@@ -72,6 +73,9 @@ public:
     double getGamma(){return _gamma;}
     void setNormalizerFactorForP(double n){normalizerFactorForP = 1 / n;}
     void updateNormalizerFactorForP(){normalizerFactorForP = normalizerFactorForP + 1;} //changed
+    void resetNoise(){noise = 0.0;}
+    void updateNoise(double n){noise = noise + n;}
+    double getNoise(){return noise;}
     vector<int> getListOfRawStates(){return listOfRawStates;}
     vector<vector<int>> getListOfStates(){return listOfStates;} //new
     vector<int> getListOfActions(){return listOfActions;}
